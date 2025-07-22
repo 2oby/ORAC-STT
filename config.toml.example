@@ -1,0 +1,31 @@
+# ORAC STT Service Configuration
+
+[default]
+app_name = "ORAC STT Service"
+environment = "production"
+log_level = "INFO"
+log_format = "json"
+
+[model]
+name = "whisper-tiny-int8"
+cache_dir = "/app/models"
+device = "cuda"  # Options: cuda, cpu
+
+[api]
+host = "0.0.0.0"
+port = 8000
+max_audio_duration = 15  # seconds
+request_timeout = 20  # seconds
+
+[command_api]
+url = "http://localhost:8001/command"
+timeout = 30  # seconds
+max_retries = 3
+retry_delay = 1.0  # seconds
+
+[security]
+enable_tls = false
+cert_file = "/app/certs/server.crt"
+key_file = "/app/certs/server.key"
+ca_file = "/app/certs/ca.crt"
+enable_mtls = false

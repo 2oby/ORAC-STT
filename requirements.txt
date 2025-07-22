@@ -1,0 +1,36 @@
+# Core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Configuration
+toml==0.10.2
+tomli==2.0.1  # Fallback for Python < 3.11
+
+# Metrics
+prometheus-client==0.19.0
+
+# Audio processing
+numpy==1.24.3
+scipy==1.11.4
+librosa==0.10.1
+soundfile==0.12.1
+
+# Machine Learning
+torch==2.1.0
+torchaudio==2.1.0
+openai-whisper==20231117
+
+# HTTP client (Phase 3)
+# httpx==0.25.2
+# tenacity==8.2.3
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+isort==5.12.0
+mypy==1.7.1
+flake8==6.1.0
