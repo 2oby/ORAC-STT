@@ -11,16 +11,18 @@ REMOTE_DIR="/home/${ORIN_USER}/${PROJECT_NAME}"
 
 echo "=� Deploying ORAC STT to Orin Nano (${ORIN_HOST})"
 
-# Create remote directory
-echo "=� Creating remote directory..."
-ssh ${ORIN_HOST} "mkdir -p ${REMOTE_DIR}"
-
-# Sync project files
-echo "=� Syncing project files..."
-rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
-    --exclude='.pytest_cache' --exclude='venv' --exclude='env' \
-    --exclude='test_startup.py' \
-    ../ ${ORIN_HOST}:${REMOTE_DIR}/
+# Clone or update repository
+echo "📥 Updating code from Git..."
+ssh ${ORIN_HOST} "
+    if [ -d ${REMOTE_DIR}/.git ]; then
+        echo 'Pulling latest changes...'
+        cd ${REMOTE_DIR} && git pull origin master
+    else
+        echo 'Cloning repository...'
+        rm -rf ${REMOTE_DIR}
+        git clone https://github.com/2oby/ORAC-STT.git ${REMOTE_DIR}
+    fi
+"
 
 # Build Docker image on Orin
 echo "=3 Building Docker image on Orin..."

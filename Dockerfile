@@ -40,9 +40,9 @@ RUN pip install --no-cache-dir \
     soundfile==0.12.1
 
 # Install PyTorch for CUDA (ARM64/Jetson/Orin)
-# Note: This uses the PyTorch wheel optimized for Jetson/Orin
+# Note: Using PyTorch 2.0.1 which is the latest available for ARM64 CUDA
 RUN pip install --no-cache-dir \
-    torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 \
+    torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 \
     --index-url https://download.pytorch.org/whl/cu121
 
 # Install Whisper
