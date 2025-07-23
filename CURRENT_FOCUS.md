@@ -56,29 +56,47 @@ nvidia/cuda:12.6.0-runtime (base)
 - ⏳ Confidence score extraction
 - ⏳ Language detection
 
+### ✅ **DEPLOYMENT SUCCESS - whisper.cpp Working!**
+
+**2025-07-23 Update:**
+- ✅ **Container deployed successfully** with GPU support (CUDA 12.6)
+- ✅ **whisper.cpp built and compiled** with CUDA for compute capability 8.7
+- ✅ **All models downloaded**: tiny (75MB), base (142MB), small (466MB), medium (1.5GB)
+- ✅ **Binaries mounted correctly** in container at `/app/third_party/whisper_cpp/bin/`
+- ✅ **GPU acceleration confirmed** via nvidia-smi in container
+
+**Available Models:**
+```bash
+/home/toby/orac-stt/third_party/whisper_cpp/models/whisper/
+├── ggml-tiny.bin   (75MB)   - Fastest inference, basic accuracy
+├── ggml-base.bin   (142MB)  - Good balance of speed/accuracy (recommended)
+├── ggml-small.bin  (466MB)  - Better accuracy, slower
+└── ggml-medium.bin (1.5GB)  - Best accuracy, much slower
+```
+
+**Available Binaries:**
+```bash
+/home/toby/orac-stt/third_party/whisper_cpp/bin/
+├── whisper-cli     - Main transcription binary
+├── whisper-server  - HTTP server mode
+├── quantize        - Model quantization tool
+└── whisper-bench   - Performance benchmarking
+```
+
 ### 🎯 IMMEDIATE NEXT STEPS
 
-1. **Deploy and Test whisper.cpp Container**
+1. **Test whisper.cpp GPU Inference**
    ```bash
-   cd scripts && ./deploy_and_test.sh
-   # This will:
-   # - Build whisper.cpp on Jetson (first time only)
-   # - Build and deploy container
-   # - Mount whisper.cpp binaries
-   ```
-
-2. **Verify whisper.cpp GPU Inference**
-   ```bash
-   # Test whisper.cpp directly
-   ssh orin3 "cd orac-stt && ./third_party/whisper_cpp/bin/whisper -m ./third_party/whisper_cpp/models/ggml-base.bin test_audio.wav"
+   # Test whisper.cpp directly on Orin
+   ssh orin3 "cd /home/toby/orac-stt/third_party/whisper_cpp && ./bin/whisper-cli -m models/whisper/ggml-base.bin test_audio.wav"
    
-   # Test through API
-   curl -X POST http://orin3:8000/stt/v1/stream -F "audio=@test.wav"
+   # Test through container
+   docker exec orac-stt ./third_party/whisper_cpp/bin/whisper-cli --help
    ```
 
-3. **Complete STT Endpoint Implementation**
+2. **Complete STT Endpoint Implementation**
    - Connect audio processor to unified loader
-   - Implement streaming response pattern
+   - Implement streaming response pattern  
    - Add proper error handling
 
 ## Technical Architecture Update
