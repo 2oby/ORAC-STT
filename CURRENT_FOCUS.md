@@ -2,14 +2,33 @@
 
 ## Current Status (2025-07-23 - GPU Update)
 
-### 🚀 MAJOR UPDATE: GPU Support Enabled!
+### 🚀 MAJOR UPDATE: Switched to whisper.cpp for GPU Support!
 
-**GPU Infrastructure Changes:**
-- ✅ **Dockerfile updated** to use `nvidia/cuda:12.6.0-runtime-ubuntu22.04` base image
-- ✅ **Added `--gpus all`** flag to deployment script
-- ✅ **Installed CUDA-optimized PyTorch** for ARM64/Jetson/Orin
-- ✅ **Full ML stack included**: PyTorch 2.1.0 + Whisper + Audio libraries
-- ✅ **Created GPU test script** for validation
+**Why whisper.cpp?**
+- ORAC project uses llama.cpp (C++ implementation) with native CUDA support
+- PyTorch wheels for Jetson have CUDA compatibility issues
+- whisper.cpp provides better performance and smaller footprint on edge devices
+
+**Implementation Changes:**
+- ✅ **Created whisper.cpp build script** - Compiles with CUDA support for compute capability 8.7
+- ✅ **Updated Dockerfile** - Removed PyTorch, now mounts whisper.cpp binaries
+- ✅ **Python wrapper created** - `WhisperCppModel` class wraps binary execution
+- ✅ **Unified loader implemented** - Supports both whisper.cpp and PyTorch backends
+- ✅ **Deployment script updated** - Builds whisper.cpp on device, mounts binaries
+
+**Container Architecture:**
+```
+nvidia/cuda:12.6.0-runtime (base)
+├── FastAPI application
+├── whisper.cpp binaries (mounted)
+└── GGML models (mounted)
+```
+
+**Benefits:**
+- Container size: ~500MB (vs 3-4GB with PyTorch)
+- Native CUDA optimization for Jetson/Orin
+- Consistent with ORAC's C++ approach
+- Better performance and memory efficiency
 
 ### 🎉 Phase 1: Core Architecture & Setup - ✅ **COMPLETE**
 - Python package structure with organized modules
@@ -39,50 +58,58 @@
 
 ### 🎯 IMMEDIATE NEXT STEPS
 
-1. **Deploy and Test GPU Container**
+1. **Deploy and Test whisper.cpp Container**
    ```bash
    cd scripts && ./deploy_and_test.sh
-   # Test GPU access
-   ssh orin3 "docker exec orac-stt python scripts/test_gpu.py"
+   # This will:
+   # - Build whisper.cpp on Jetson (first time only)
+   # - Build and deploy container
+   # - Mount whisper.cpp binaries
    ```
 
-2. **Complete Model Inference Wrapper**
-   - Implement `src/orac_stt/models/inference.py`
-   - Connect audio processor to Whisper model
-   - Add confidence score extraction
+2. **Verify whisper.cpp GPU Inference**
+   ```bash
+   # Test whisper.cpp directly
+   ssh orin3 "cd orac-stt && ./third_party/whisper_cpp/bin/whisper -m ./third_party/whisper_cpp/models/ggml-base.bin test_audio.wav"
+   
+   # Test through API
+   curl -X POST http://orin3:8000/stt/v1/stream -F "audio=@test.wav"
+   ```
 
-3. **Implement STT Endpoint** (Phase 3 Start)
-   - Create `/stt/v1/stream` endpoint
-   - Add 202 Accepted response pattern
-   - Implement streaming transcription
+3. **Complete STT Endpoint Implementation**
+   - Connect audio processor to unified loader
+   - Implement streaming response pattern
+   - Add proper error handling
 
 ## Technical Architecture Update
 
-### ✅ GPU-Enabled Stack
+### ✅ whisper.cpp Architecture
 ```
 ┌─────────────────────────────────────────────┐
 │          NVIDIA CUDA 12.6 Runtime           │
 │                                             │
 │  ┌─────────────┐    ┌──────────────────┐  │
-│  │   PyTorch   │    │     Whisper      │  │
-│  │  CUDA 12.1  │───▶│   GPU Inference  │  │
-│  │   ARM64     │    │    Optimized     │  │
+│  │ whisper.cpp │    │   GGML Models   │  │
+│  │  with CUDA  │───▶│  (Quantized)    │  │
+│  │   cuBLAS    │    │   Efficient     │  │
 │  └─────────────┘    └──────────────────┘  │
-│                                             │
+│         ↑                                   │
+│         │ (subprocess)                      │
 │  ┌─────────────────────────────────────┐  │
 │  │        FastAPI Application          │  │
+│  │  - WhisperCppModel wrapper          │  │
 │  │  - Audio validation & processing    │  │
-│  │  - Model management & caching       │  │
 │  │  - Streaming responses              │  │
 │  └─────────────────────────────────────┘  │
 └─────────────────────────────────────────────┘
 ```
 
 ### 🔄 Container Size & Build Time
-- **Previous size**: ~200MB (minimal Python)
-- **New size**: ~3-4GB (with CUDA, PyTorch, Whisper)
-- **Build time**: ~5-10 minutes (first build)
+- **PyTorch approach**: ~3-4GB container (abandoned due to CUDA issues)
+- **whisper.cpp approach**: ~500MB container + mounted binaries
+- **Build time**: Container ~1 min, whisper.cpp ~10-15 min (one-time)
 - **GPU memory**: Shared with system RAM on Orin
+- **Model sizes**: GGML models are 4-8x smaller than PyTorch equivalents
 
 ## Deployment Commands Reference
 

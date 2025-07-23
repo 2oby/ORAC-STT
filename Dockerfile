@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libsndfile1 \
     ffmpeg \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symlinks for python
@@ -39,21 +40,18 @@ RUN pip install --no-cache-dir \
     librosa==0.10.1 \
     soundfile==0.12.1
 
-# Install PyTorch for CUDA (ARM64/Jetson/Orin)
-# Note: Using PyTorch 2.0.1 which is the latest available for ARM64 CUDA
-RUN pip install --no-cache-dir \
-    torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 \
-    --index-url https://download.pytorch.org/whl/cu121
-
-# Install Whisper
-RUN pip install --no-cache-dir openai-whisper==20231117
+# We'll use whisper.cpp instead of PyTorch for better performance on Jetson
+# The whisper.cpp binaries will be built on the device and copied in
 
 # Copy application code
 COPY src/ ./src/
 COPY config.toml.example ./config.toml
 
 # Create necessary directories
-RUN mkdir -p /app/models /app/logs /app/certs
+RUN mkdir -p /app/models /app/logs /app/certs /app/third_party/whisper_cpp/bin
+
+# Note: whisper.cpp binaries should be built on Jetson and mounted at runtime
+# via: -v /path/to/whisper_cpp/bin:/app/third_party/whisper_cpp/bin
 
 # Expose port
 EXPOSE 8000

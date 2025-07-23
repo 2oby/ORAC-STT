@@ -24,6 +24,19 @@ ssh ${ORIN_HOST} "
     fi
 "
 
+# Build whisper.cpp if not already built
+echo "🛠️ Building whisper.cpp on Jetson..."
+ssh ${ORIN_HOST} "
+    cd ${REMOTE_DIR}
+    if [ ! -f third_party/whisper_cpp/bin/whisper ]; then
+        echo 'Building whisper.cpp for the first time...'
+        chmod +x third_party/whisper_cpp/build_whisper_cpp.sh
+        cd third_party/whisper_cpp && ./build_whisper_cpp.sh
+    else
+        echo 'whisper.cpp already built'
+    fi
+"
+
 # Build Docker image on Orin
 echo "=3 Building Docker image on Orin..."
 ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker build -t ${PROJECT_NAME}:latest ."
@@ -42,7 +55,10 @@ ssh ${ORIN_HOST} "docker run -d \
     -v ${REMOTE_DIR}/models:/app/models \
     -v ${REMOTE_DIR}/logs:/app/logs \
     -v ${REMOTE_DIR}/certs:/app/certs \
+    -v ${REMOTE_DIR}/third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro \
+    -v ${REMOTE_DIR}/third_party/whisper_cpp/models:/app/models/whisper_cpp:ro \
     -e ORAC_COMMAND_API_URL=http://localhost:8001/command \
+    -e USE_WHISPER_CPP=true \
     ${PROJECT_NAME}:latest"
 
 # Wait for service to start
