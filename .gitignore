@@ -79,6 +79,13 @@ models/*.pt         # PyTorch models
 *.key               # Private keys
 *.crt               # Certificates
 
+# Whisper.cpp model files and build artifacts - downloaded at runtime
+third_party/whisper_cpp/models/
+third_party/whisper_cpp/whisper.cpp/
+third_party/whisper_cpp/bin/
+*.bin
+*.ggml
+
 # Temporary files
 *.tmp
 *.temp

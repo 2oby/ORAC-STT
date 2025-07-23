@@ -1,0 +1,46 @@
+# Docker ignore file for ORAC STT
+# Exclude large model files from Docker build context
+
+# Whisper model files - these are downloaded/mounted at runtime
+third_party/whisper_cpp/models/
+third_party/whisper_cpp/whisper.cpp/
+*.bin
+*.ggml
+
+# Development files
+.git/
+.gitignore
+.vscode/
+.idea/
+*.md
+CURRENT_FOCUS.md
+README.md
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Local config files (use config.toml.example instead)
+config.toml
+
+# Logs and data
+logs/
+*.log
+models/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Development scripts
+scripts/test_*.py
+scripts/dev_*.sh

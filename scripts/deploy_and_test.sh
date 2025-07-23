@@ -28,7 +28,7 @@ ssh ${ORIN_HOST} "
 echo "🛠️ Building whisper.cpp on Jetson..."
 ssh ${ORIN_HOST} "
     cd ${REMOTE_DIR}
-    if [ ! -f third_party/whisper_cpp/bin/whisper ]; then
+    if [ ! -f third_party/whisper_cpp/bin/whisper-cli ]; then
         echo 'Building whisper.cpp for the first time...'
         chmod +x third_party/whisper_cpp/build_whisper_cpp.sh
         cd third_party/whisper_cpp && ./build_whisper_cpp.sh
