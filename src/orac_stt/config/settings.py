@@ -3,7 +3,8 @@
 import os
 from pathlib import Path
 from typing import Optional
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator, ConfigDict
+from pydantic_settings import BaseSettings
 
 
 class ModelConfig(BaseSettings):
@@ -13,14 +14,14 @@ class ModelConfig(BaseSettings):
     cache_dir: Path = Field(default=Path("/app/models"), env="MODEL_CACHE_DIR")
     device: str = Field(default="cuda", env="MODEL_DEVICE")
     
-    @validator("cache_dir", pre=True)
+    @field_validator("cache_dir", mode="before")
+    @classmethod
     def validate_cache_dir(cls, v):
         if isinstance(v, str):
             return Path(v)
         return v
 
-    class Config:
-        env_prefix = "ORAC_MODEL_"
+    model_config = ConfigDict(env_prefix="ORAC_MODEL_")
 
 
 class APIConfig(BaseSettings):
@@ -31,20 +32,18 @@ class APIConfig(BaseSettings):
     max_audio_duration: int = Field(default=15, env="MAX_AUDIO_DURATION")
     request_timeout: int = Field(default=20, env="REQUEST_TIMEOUT")
     
-    class Config:
-        env_prefix = "ORAC_API_"
+    model_config = ConfigDict(env_prefix="ORAC_API_")
 
 
 class CommandAPIConfig(BaseSettings):
     """Command API client configuration."""
     
-    url: str = Field(env="COMMAND_API_URL")
+    url: str = Field(default="http://localhost:8001/command", env="COMMAND_API_URL")
     timeout: int = Field(default=30, env="COMMAND_API_TIMEOUT")
     max_retries: int = Field(default=3, env="COMMAND_API_MAX_RETRIES")
     retry_delay: float = Field(default=1.0, env="COMMAND_API_RETRY_DELAY")
     
-    class Config:
-        env_prefix = "ORAC_"
+    model_config = ConfigDict(env_prefix="ORAC_")
 
 
 class SecurityConfig(BaseSettings):
@@ -56,14 +55,14 @@ class SecurityConfig(BaseSettings):
     ca_file: Optional[Path] = Field(default=None, env="CA_FILE")
     enable_mtls: bool = Field(default=False, env="ENABLE_MTLS")
     
-    @validator("cert_file", "key_file", "ca_file", pre=True)
+    @field_validator("cert_file", "key_file", "ca_file", mode="before")
+    @classmethod
     def validate_paths(cls, v):
         if v and isinstance(v, str):
             return Path(v)
         return v
     
-    class Config:
-        env_prefix = "ORAC_SECURITY_"
+    model_config = ConfigDict(env_prefix="ORAC_SECURITY_")
 
 
 class Settings(BaseSettings):
@@ -79,11 +78,12 @@ class Settings(BaseSettings):
     command_api: CommandAPIConfig = Field(default_factory=CommandAPIConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     
-    class Config:
-        env_prefix = "ORAC_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_prefix="ORAC_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
 
 
 def get_settings() -> Settings:

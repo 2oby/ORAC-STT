@@ -1,31 +1,43 @@
-# ORAC STT Service Configuration
+# ORAC STT Service Configuration Template
+#
+# This is a template configuration file. To use it:
+# 1. Copy this file to config.toml: cp config.toml.example config.toml
+# 2. Edit config.toml with your specific settings
+# 3. The config.toml file is ignored by git to keep your settings private
+#
+# Environment variables can override any setting using the ORAC_ prefix
+# Example: ORAC_LOG_LEVEL=DEBUG will override log_level below
 
-[default]
+# Application settings
 app_name = "ORAC STT Service"
-environment = "production"
-log_level = "INFO"
-log_format = "json"
+environment = "production"  # Options: development, production
+log_level = "INFO"          # Options: DEBUG, INFO, WARNING, ERROR
+log_format = "json"         # Options: json, standard
 
+# Model configuration
 [model]
-name = "whisper-tiny-int8"
-cache_dir = "/app/models"
-device = "cuda"  # Options: cuda, cpu
+name = "whisper-tiny-int8"              # Model to use for STT
+cache_dir = "/app/models"               # Where to cache downloaded models
+device = "cuda"                         # Options: cuda, cpu
 
+# API server configuration  
 [api]
-host = "0.0.0.0"
-port = 8000
-max_audio_duration = 15  # seconds
-request_timeout = 20  # seconds
+host = "0.0.0.0"                        # Interface to bind to
+port = 8000                             # Port to listen on
+max_audio_duration = 15                 # Maximum audio length in seconds
+request_timeout = 20                    # Request timeout in seconds
 
+# Command API integration (where transcriptions are sent)
 [command_api]
-url = "http://localhost:8001/command"
-timeout = 30  # seconds
-max_retries = 3
-retry_delay = 1.0  # seconds
+url = "http://localhost:8001/command"   # Command API endpoint URL
+timeout = 30                            # Request timeout in seconds
+max_retries = 3                         # Number of retry attempts
+retry_delay = 1.0                       # Delay between retries in seconds
 
+# Security settings
 [security]
-enable_tls = false
-cert_file = "/app/certs/server.crt"
-key_file = "/app/certs/server.key"
-ca_file = "/app/certs/ca.crt"
-enable_mtls = false
+enable_tls = false                      # Enable HTTPS
+cert_file = "/app/certs/server.crt"     # TLS certificate file
+key_file = "/app/certs/server.key"      # TLS private key file
+ca_file = "/app/certs/ca.crt"           # Certificate Authority file
+enable_mtls = false                     # Enable mutual TLS (client certificates)

@@ -34,6 +34,7 @@ ssh ${ORIN_HOST} "docker stop ${PROJECT_NAME} || true && docker rm ${PROJECT_NAM
 echo "�  Starting container..."
 ssh ${ORIN_HOST} "docker run -d \
     --name ${PROJECT_NAME} \
+    --gpus all \
     --restart unless-stopped \
     -p 8000:8000 \
     -v ${REMOTE_DIR}/models:/app/models \

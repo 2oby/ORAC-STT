@@ -20,10 +20,41 @@ The ORAC STT (Speech-to-Text) Service is designed to run on NVIDIA Orin Nano, pr
 - **Robustness**: Auto-restarts on GPU/driver failure
 - **Future Hooks**: Reserved fields for speaker ID and word-level timestamps in protobuf; planned streaming partial ASR via gRPC
 
+## Configuration
+
+The service uses a configuration file system with environment variable overrides:
+
+1. **Copy the template**: `cp config.toml.example config.toml`
+2. **Edit your settings**: Modify `config.toml` for your environment
+3. **Override with env vars**: Use `ORAC_` prefix (e.g., `ORAC_LOG_LEVEL=DEBUG`)
+
+### Configuration Sections:
+- **App settings**: Logging, environment mode
+- **Model**: Whisper model selection, GPU/CPU device, cache directory
+- **API**: Host, port, timeouts, audio duration limits
+- **Command API**: Downstream service integration
+- **Security**: TLS/mTLS certificates and settings
+
 ## Getting Started
 
-1. Build and deploy the service using Docker Compose or systemd.
-2. Send audio to `/stt/v1/stream` and receive transcriptions.
-3. Monitor health and metrics endpoints for observability.
+### Quick Deploy to Orin Nano
+```bash
+# Deploy and test
+cd scripts
+./deploy_and_test.sh
 
-For detailed setup, deployment, and API usage, see the documentation in the `docs/` directory.
+# Check logs
+ssh orin3 "docker logs -f orac-stt"
+
+# Test endpoints
+curl http://orin3:8000/health
+curl http://orin3:8000/metrics
+```
+
+### Development
+1. Copy and customize configuration: `cp config.toml.example config.toml`
+2. Build and deploy the service using Docker Compose or systemd
+3. Send audio to `/stt/v1/stream` and receive transcriptions
+4. Monitor health and metrics endpoints for observability
+
+For detailed setup, deployment, and API usage, see the `CURRENT_FOCUS.md` file.
