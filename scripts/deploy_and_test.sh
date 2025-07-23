@@ -35,6 +35,17 @@ ssh ${ORIN_HOST} "
     else
         echo 'whisper.cpp already built'
     fi
+    
+    # Copy shared libraries if not already done
+    if [ ! -d third_party/whisper_cpp/lib ]; then
+        echo 'Copying whisper.cpp shared libraries...'
+        mkdir -p third_party/whisper_cpp/lib
+        cp third_party/whisper_cpp/whisper.cpp/build/src/*.so* third_party/whisper_cpp/lib/ 2>/dev/null || true
+        cp third_party/whisper_cpp/whisper.cpp/build/ggml/src/*.so* third_party/whisper_cpp/lib/ 2>/dev/null || true
+        echo 'Shared libraries copied'
+    else
+        echo 'Shared libraries already available'
+    fi
 "
 
 # Build Docker image on Orin
@@ -57,8 +68,10 @@ ssh ${ORIN_HOST} "docker run -d \
     -v ${REMOTE_DIR}/certs:/app/certs \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/models:/app/models/whisper_cpp:ro \
+    -v ${REMOTE_DIR}/third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro \
     -e ORAC_COMMAND_API_URL=http://localhost:8001/command \
     -e USE_WHISPER_CPP=true \
+    -e LD_LIBRARY_PATH=/usr/local/lib/whisper \
     ${PROJECT_NAME}:latest"
 
 # Wait for service to start
