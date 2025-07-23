@@ -1,6 +1,32 @@
 # ORAC STT Service - Project Plan
 
-## Current Status (2025-07-23 - GPU Update)
+## 🎯 NEXT PHASE: Web Management GUI (2025-07-23)
+
+### Requirements for Web Management Interface
+
+**Core Management Features:**
+- **Log Viewer**: Real-time and historical log display with filtering and search
+- **Model Selection**: Interactive model switching between tiny/base/small/medium with performance metrics
+- **Upstream Configuration**: Define and manage Command API endpoint and integration settings
+- **Audio File Caching**: Store and manage uploaded audio files for testing and model comparison
+- **Service Health Dashboard**: Monitor container status, GPU usage, memory, and inference performance
+
+**Advanced Features (Placeholders):**
+- **Security Management**: TLS certificate management, authentication configuration
+- **Service Binding**: Upstream (Command API) and downstream service integration management
+- **Performance Analytics**: Historical performance metrics, latency tracking, accuracy analysis
+- **Model Management**: Download/upload additional models, quantization tools interface
+- **Configuration Editor**: Live editing of service configuration with validation
+
+**Technical Implementation:**
+- **Frontend**: Modern web interface (React/Vue.js) with real-time updates
+- **Backend**: FastAPI endpoints for management operations alongside STT API
+- **WebSocket**: Real-time log streaming and status updates
+- **Authentication**: Secure access control for management operations
+
+---
+
+## Current Status (2025-07-23 - whisper.cpp Complete)
 
 ### 🚀 MAJOR UPDATE: Switched to whisper.cpp for GPU Support!
 
