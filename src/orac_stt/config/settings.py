@@ -10,8 +10,8 @@ from pydantic_settings import BaseSettings
 class ModelConfig(BaseSettings):
     """Model configuration settings."""
     
-    name: str = Field(default="whisper-tiny-int8", env="MODEL_NAME")
-    cache_dir: Path = Field(default=Path("/app/models"), env="MODEL_CACHE_DIR")
+    name: str = Field(default="whisper-tiny", env="MODEL_NAME")
+    cache_dir: Path = Field(default=Path("/app/models/whisper_cpp"), env="MODEL_CACHE_DIR")
     device: str = Field(default="cuda", env="MODEL_DEVICE")
     
     @field_validator("cache_dir", mode="before")
@@ -28,7 +28,7 @@ class APIConfig(BaseSettings):
     """API configuration settings."""
     
     host: str = Field(default="0.0.0.0", env="API_HOST")
-    port: int = Field(default=8000, env="API_PORT")
+    port: int = Field(default=7272, env="API_PORT")
     max_audio_duration: int = Field(default=15, env="MAX_AUDIO_DURATION")
     request_timeout: int = Field(default=20, env="REQUEST_TIMEOUT")
     

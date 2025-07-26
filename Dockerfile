@@ -31,7 +31,8 @@ RUN pip install --no-cache-dir \
     pydantic-settings==2.1.0 \
     prometheus-client==0.19.0 \
     toml==0.10.2 \
-    tomli==2.0.1
+    tomli==2.0.1 \
+    python-multipart==0.0.6
 
 # Install Python dependencies - Audio Processing
 RUN pip install --no-cache-dir \

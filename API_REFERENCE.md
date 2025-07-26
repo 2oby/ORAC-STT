@@ -4,7 +4,7 @@
 
 The ORAC Speech-to-Text (STT) Service provides high-performance audio transcription using Whisper models optimized for NVIDIA Orin Nano. The service accepts audio files and returns transcribed text with metadata.
 
-**Base URL**: `http://<host>:8000`
+**Base URL**: `http://<host>:7272`
 
 ## Authentication
 
@@ -43,7 +43,7 @@ Transcribes audio files to text.
 
 **Example**:
 ```bash
-curl -X POST http://localhost:8000/stt/v1/stream \
+curl -X POST http://localhost:7272/stt/v1/stream \
   -F "file=@audio.wav" \
   -F "language=en"
 ```
@@ -125,7 +125,7 @@ import requests
 # Transcribe an audio file
 with open("audio.wav", "rb") as f:
     response = requests.post(
-        "http://orin3:8000/stt/v1/stream",
+        "http://orin3:7272/stt/v1/stream",
         files={"file": f},
         data={"language": "en"}
     )

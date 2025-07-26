@@ -117,7 +117,14 @@ nvidia/cuda:12.6.0-runtime (base)
 
 **Phase 2 Status**: whisper.cpp integration complete! Moving to STT API endpoint.
 
+**🚨 IMMEDIATE ISSUE: FastAPI Dependency Missing**
+- Container startup fails with "python-multipart" missing error
+- Required for FastAPI file upload endpoints (UploadFile parameter)
+- Need to add `python-multipart` to Dockerfile dependencies
+- Blocking health checks and STT endpoint functionality
+
 1. **Complete STT Endpoint Implementation**
+   - **URGENT**: Fix python-multipart dependency in Dockerfile
    - Connect audio processor to unified loader (whisper.cpp backend)
    - Implement streaming response pattern for `/stt/v1/stream`
    - Add proper error handling and model loading
