@@ -123,7 +123,7 @@ async def transcribe_stream(
         logger.info(
             "Processing audio",
             extra={
-                "filename": file.filename,
+                "file_name": file.filename,
                 "size_bytes": len(audio_bytes),
                 "duration": duration,
                 "sample_rate": sample_rate
