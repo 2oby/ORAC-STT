@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from .config.loader import load_config
 from .config.settings import Settings
 from .utils.logging import setup_logging, get_logger
-from .api import health, metrics
+from .api import health, metrics, stt
 from .core.shutdown import shutdown_handler
 
 
@@ -70,7 +70,7 @@ def create_app(config_path: Optional[Path] = None) -> FastAPI:
     # Include routers
     app.include_router(health.router, tags=["health"])
     app.include_router(metrics.router, tags=["monitoring"])
-    # app.include_router(stt.router, prefix="/stt/v1", tags=["stt"])
+    app.include_router(stt.router, prefix="/stt/v1", tags=["stt"])
     
     return app
 

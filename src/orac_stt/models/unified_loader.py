@@ -89,12 +89,12 @@ class UnifiedWhisperLoader:
         ggml_name = self.WHISPER_CPP_MODELS.get(model_name, "ggml-base.bin")
         model_path = Path(self.config.cache_dir) / ggml_name
         
-        # Whisper binary path
-        whisper_bin = Path("/app/third_party/whisper_cpp/bin/whisper")
+        # Whisper binary path - whisper.cpp builds as "whisper-cli"
+        whisper_bin = Path("/app/third_party/whisper_cpp/bin/whisper-cli")
         
         # Check if binary exists, if not try alternate location
         if not whisper_bin.exists():
-            whisper_bin = Path(self.config.cache_dir).parent / "whisper_cpp" / "bin" / "whisper"
+            whisper_bin = Path(self.config.cache_dir).parent / "whisper_cpp" / "bin" / "whisper-cli"
         
         logger.info(f"Loading whisper.cpp model: {model_path}")
         logger.info(f"Using whisper binary: {whisper_bin}")
@@ -157,11 +157,14 @@ class UnifiedWhisperLoader:
         if self._model is None:
             self.load_model()
             
+        # Extract task from kwargs if present
+        task = kwargs.pop("task", "transcribe") if isinstance(kwargs, dict) else "transcribe"
+        
         return self._model.transcribe(
             audio_data,
             sample_rate=sample_rate,
             language=language,
-            **kwargs
+            **kwargs if isinstance(kwargs, dict) else {}
         )
     
     def detect_language(

@@ -5,11 +5,11 @@ import tempfile
 import json
 import os
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 import wave
 import numpy as np
 
-from ..utils.logger import get_logger
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ class WhisperCppModel:
     def __init__(
         self,
         model_path: str = "/app/models/ggml-base.bin",
-        whisper_bin: str = "/app/third_party/whisper_cpp/bin/whisper",
+        whisper_bin: str = "/app/third_party/whisper_cpp/bin/whisper-cli",
         device: str = "cuda"
     ):
         """Initialize whisper.cpp wrapper.
@@ -48,7 +48,7 @@ class WhisperCppModel:
         sample_rate: int = 16000,
         language: Optional[str] = None,
         **kwargs
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """Transcribe audio using whisper.cpp.
         
         Args:

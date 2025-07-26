@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  orac-stt:
+    build: .
+    container_name: orac-stt
+    image: orac-stt:latest
+    
+    # GPU support for Orin Nano
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      
+    # Service configuration
+    environment:
+      - LOG_LEVEL=INFO
+      - MODEL_NAME=whisper-tiny-int8
+      - MODEL_CACHE_DIR=/app/models
+      - COMMAND_API_URL=${COMMAND_API_URL:-http://command-api:8080}
+      - API_PORT=7272
+      
+    # Volume mounts - ensure proper permissions
+    volumes:
+      # Model cache - persistent across restarts
+      - ./models:/app/models:rw
+      # Certificates for mTLS
+      - ./certs:/app/certs:ro
+      # Configuration
+      - ./config:/app/config:ro
+      # Logs (optional, can use docker logs instead)
+      - ./logs:/app/logs:rw
+      # whisper.cpp binaries (built on Jetson)
+      - ./third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro
+      
+    # Port mappings
+    ports:
+      - "7272:7272"  # HTTP API, Health, Metrics
+      
+    # Resource limits for Orin Nano
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+          
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7272/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+      
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "app=orac-stt"
+
+# Networks (if needed for multi-service setup)
+networks:
+  default:
+    driver: bridge
