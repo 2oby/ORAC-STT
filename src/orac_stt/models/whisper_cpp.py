@@ -84,9 +84,9 @@ class WhisperCppModel:
                 "--no-timestamps",  # Disable timestamps for faster inference
             ]
             
-            # Add GPU flag if using CUDA
-            if self.device == "cuda":
-                cmd.append("--gpu")
+            # Add GPU flag if using CUDA (whisper.cpp uses --no-gpu to disable, GPU is default)
+            if self.device == "cpu":
+                cmd.append("--no-gpu")
             
             # Add language if specified
             if language:
