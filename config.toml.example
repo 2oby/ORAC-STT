@@ -16,14 +16,14 @@ log_format = "json"         # Options: json, standard
 
 # Model configuration
 [model]
-name = "whisper-tiny-int8"              # Model to use for STT
-cache_dir = "/app/models"               # Where to cache downloaded models
+name = "whisper-tiny"                   # Model to use for STT
+cache_dir = "/app/models/whisper_cpp"   # Where to cache downloaded models
 device = "cuda"                         # Options: cuda, cpu
 
 # API server configuration  
 [api]
 host = "0.0.0.0"                        # Interface to bind to
-port = 8000                             # Port to listen on
+port = 7272                             # Port to listen on
 max_audio_duration = 15                 # Maximum audio length in seconds
 request_timeout = 20                    # Request timeout in seconds
 

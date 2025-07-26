@@ -70,6 +70,7 @@ ssh ${ORIN_HOST} "docker run -d \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/models:/app/models/whisper_cpp:ro \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro \
     -e ORAC_COMMAND_API_URL=http://localhost:8001/command \
+    -e ORAC_API_PORT=7272 \
     -e USE_WHISPER_CPP=true \
     -e LD_LIBRARY_PATH=/usr/local/lib/whisper \
     ${PROJECT_NAME}:latest"
