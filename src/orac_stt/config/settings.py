@@ -11,7 +11,7 @@ class ModelConfig(BaseSettings):
     """Model configuration settings."""
     
     name: str = Field(default="whisper-tiny", env="MODEL_NAME")
-    cache_dir: Path = Field(default=Path("/app/models/whisper_cpp"), env="MODEL_CACHE_DIR")
+    cache_dir: Path = Field(default=Path("/app/models/whisper_cpp/whisper"), env="MODEL_CACHE_DIR")
     device: str = Field(default="cuda", env="MODEL_DEVICE")
     
     @field_validator("cache_dir", mode="before")

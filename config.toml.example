@@ -17,7 +17,7 @@ log_format = "json"         # Options: json, standard
 # Model configuration
 [model]
 name = "whisper-tiny"                   # Model to use for STT
-cache_dir = "/app/models/whisper_cpp"   # Where to cache downloaded models
+cache_dir = "/app/models/whisper_cpp/whisper"   # Where to cache downloaded models
 device = "cuda"                         # Options: cuda, cpu
 
 # API server configuration  
