@@ -72,14 +72,16 @@ async def transcribe_audio(
     
     # Run transcription in thread pool to avoid blocking
     loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(
-        None,
-        model_loader.transcribe,
-        audio_data,
-        sample_rate,
-        language,
-        {"task": task}
-    )
+    
+    def transcribe_sync():
+        return model_loader.transcribe(
+            audio_data,
+            sample_rate=sample_rate,
+            language=language,
+            task=task
+        )
+    
+    result = await loop.run_in_executor(None, transcribe_sync)
     
     return result
 
