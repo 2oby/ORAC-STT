@@ -47,8 +47,8 @@ cd scripts
 ssh orin3 "docker logs -f orac-stt"
 
 # Test endpoints
-curl http://orin3:8000/health
-curl http://orin3:8000/metrics
+curl http://orin3:7272/health
+curl http://orin3:7272/metrics
 ```
 
 ### Development

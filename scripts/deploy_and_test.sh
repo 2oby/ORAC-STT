@@ -56,6 +56,10 @@ ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker build -t ${PROJECT_NAME}:latest ."
 echo "🛑 Stopping existing container..."
 ssh ${ORIN_HOST} "docker stop ${PROJECT_NAME} || true && docker rm ${PROJECT_NAME} || true"
 
+# Create debug recordings directory
+echo "📁 Creating debug recordings directory..."
+ssh ${ORIN_HOST} "mkdir -p ${REMOTE_DIR}/debug_recordings"
+
 # Run container
 echo "🚀 Starting container..."
 ssh ${ORIN_HOST} "docker run -d \
@@ -66,6 +70,7 @@ ssh ${ORIN_HOST} "docker run -d \
     -v ${REMOTE_DIR}/models:/app/models \
     -v ${REMOTE_DIR}/logs:/app/logs \
     -v ${REMOTE_DIR}/certs:/app/certs \
+    -v ${REMOTE_DIR}/debug_recordings:/app/debug_recordings \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/models:/app/models/whisper_cpp:ro \
     -v ${REMOTE_DIR}/third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro \

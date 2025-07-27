@@ -4,6 +4,9 @@ import time
 from typing import Dict, Any, Optional
 import asyncio
 from pathlib import Path
+import shutil
+from datetime import datetime
+import soundfile as sf
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Response
 from fastapi.responses import StreamingResponse
@@ -22,6 +25,10 @@ logger = get_logger(__name__)
 
 # Global model loader instance
 _model_loader: Optional[UnifiedWhisperLoader] = None
+
+# Debug recording settings
+DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
+MAX_DEBUG_RECORDINGS = 5
 
 
 class TranscriptionResponse(BaseModel):
@@ -49,6 +56,47 @@ def get_model_loader() -> UnifiedWhisperLoader:
         logger.info("Initialized model loader")
     
     return _model_loader
+
+
+def init_debug_recordings():
+    """Initialize debug recordings directory."""
+    if not DEBUG_RECORDINGS_DIR.exists():
+        DEBUG_RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Created debug recordings directory: {DEBUG_RECORDINGS_DIR}")
+
+
+def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription: str = ""):
+    """Save audio data as WAV file for debugging.
+    
+    Maintains a circular buffer of the last MAX_DEBUG_RECORDINGS files.
+    
+    Args:
+        audio_data: Audio samples as numpy array
+        sample_rate: Sample rate
+        transcription: Transcribed text (for filename)
+    """
+    init_debug_recordings()
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # ms precision
+    safe_text = transcription[:30].replace(" ", "_").replace("/", "_") if transcription else "empty"
+    filename = f"debug_{timestamp}_{safe_text}.wav"
+    filepath = DEBUG_RECORDINGS_DIR / filename
+    
+    try:
+        # Save the audio file
+        sf.write(filepath, audio_data, sample_rate)
+        logger.info(f"Saved debug recording: {filename} ({len(audio_data)/sample_rate:.2f}s)")
+        
+        # Clean up old recordings
+        recordings = sorted(DEBUG_RECORDINGS_DIR.glob("debug_*.wav"))
+        if len(recordings) > MAX_DEBUG_RECORDINGS:
+            for old_file in recordings[:-MAX_DEBUG_RECORDINGS]:
+                old_file.unlink()
+                logger.debug(f"Removed old debug recording: {old_file.name}")
+                
+    except Exception as e:
+        logger.error(f"Failed to save debug recording: {e}")
 
 
 async def transcribe_audio(
@@ -157,6 +205,9 @@ async def transcribe_stream(
             }
         )
         
+        # Save debug recording
+        save_debug_recording(audio_data, sample_rate, text)
+        
         return TranscriptionResponse(
             text=text,
             confidence=confidence,
@@ -224,3 +275,42 @@ async def preload_model() -> Dict[str, str]:
     except Exception as e:
         logger.error(f"Model preload failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
+
+
+@router.get("/debug/recordings")
+async def list_debug_recordings() -> Dict[str, Any]:
+    """List available debug recordings."""
+    init_debug_recordings()
+    
+    recordings = []
+    for file in sorted(DEBUG_RECORDINGS_DIR.glob("debug_*.wav"), reverse=True):
+        stat = file.stat()
+        recordings.append({
+            "filename": file.name,
+            "size_bytes": stat.st_size,
+            "created": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+            "duration_estimate": stat.st_size / (16000 * 2)  # Rough estimate
+        })
+    
+    return {
+        "count": len(recordings),
+        "max_recordings": MAX_DEBUG_RECORDINGS,
+        "recordings": recordings
+    }
+
+
+@router.get("/debug/recordings/{filename}")
+async def get_debug_recording(filename: str):
+    """Retrieve a specific debug recording."""
+    filepath = DEBUG_RECORDINGS_DIR / filename
+    
+    if not filepath.exists() or not filepath.name.startswith("debug_"):
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    return StreamingResponse(
+        open(filepath, "rb"),
+        media_type="audio/wav",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )

@@ -15,11 +15,11 @@ ssh ${ORIN_HOST} << 'EOF'
     
     # Test health endpoint
     echo "🏥 Testing health endpoint..."
-    curl -s http://localhost:8000/health | jq . || echo "Health check failed"
+    curl -s http://localhost:7272/health | jq . || echo "Health check failed"
     
     # Test metrics endpoint
     echo "📊 Testing metrics endpoint..."
-    curl -s http://localhost:8000/metrics | head -20
+    curl -s http://localhost:7272/metrics | head -20
     
     # Check GPU availability
     echo "🎮 Checking GPU..."

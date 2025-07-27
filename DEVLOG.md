@@ -131,19 +131,19 @@ nvidia/cuda:12.6.0-runtime (3-4GB)
 #### 🧪 **Testing Results**
 ```bash
 # Health endpoint
-curl http://orin3:8000/health
+curl http://orin3:7272/health
 # Response: {"status":"degraded","timestamp":"2025-07-23T07:18:12.253545","version":"0.1.0","checks":{"api":"healthy","model":"not_loaded","gpu":"not_checked"}}
 
 # Metrics endpoint  
-curl http://orin3:8000/metrics | head -10
+curl http://orin3:7272/metrics | head -10
 # Response: Proper Prometheus format with orac_stt_* metrics
 
 # Liveness probe
-curl http://orin3:8000/health/live
+curl http://orin3:7272/health/live
 # Response: {"status":"alive"}
 
 # Readiness probe
-curl http://orin3:8000/health/ready  
+curl http://orin3:7272/health/ready  
 # Response: {"status":"ready"}
 ```
 

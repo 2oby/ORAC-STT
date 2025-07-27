@@ -22,7 +22,7 @@ Speech-to-Text service for NVIDIA Orin Nano. Accepts audio streams, transcribes 
 
 ## Development Workflow
 
-### 1. Code ’ Test Cycle
+### 1. Code ï¿½ Test Cycle
 ```bash
 # Local development
 git add . && git commit -m "feature: description"
@@ -44,7 +44,7 @@ cd scripts && ./deploy_and_test.sh
 # Direct Orin commands
 ssh orin3 "docker ps | grep orac-stt"
 ssh orin3 "docker logs -f orac-stt"
-ssh orin3 "curl http://localhost:8000/health"
+ssh orin3 "curl http://localhost:7272/health"
 
 # Container management
 ssh orin3 "docker stop orac-stt && docker rm orac-stt"
@@ -52,7 +52,7 @@ ssh orin3 "docker stop orac-stt && docker rm orac-stt"
 
 ## Configuration
 
-- **Template**: `config.toml.example` ’ copy to `config.toml` (gitignored)
+- **Template**: `config.toml.example` ï¿½ copy to `config.toml` (gitignored)
 - **Overrides**: Environment variables with `ORAC_` prefix
 - **Container**: Config copied as `/app/config.toml`, volumes mounted for models/logs/certs
 
@@ -79,8 +79,8 @@ cd scripts && ./deploy_and_test.sh
 ssh orin3 "docker logs --tail 20 orac-stt"
 
 # Test endpoints
-curl -s http://orin3:8000/health | jq .
-curl -s http://orin3:8000/metrics | head -10
+curl -s http://orin3:7272/health | jq .
+curl -s http://orin3:7272/metrics | head -10
 
 # Force rebuild (no cache)
 ssh orin3 "cd /home/toby/orac-stt && docker build --no-cache -t orac-stt ."
