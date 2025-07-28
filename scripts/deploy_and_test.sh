@@ -1,5 +1,8 @@
 #!/bin/bash
 # Deploy and test ORAC STT service on Orin Nano
+#
+# Usage: ./scripts/deploy_and_test.sh [commit message]
+# Example: ./scripts/deploy_and_test.sh "Fix whisper.cpp empty transcription issue"
 
 set -e
 
@@ -9,10 +12,38 @@ ORIN_USER="${ORIN_USER:-toby}"
 PROJECT_NAME="orac-stt"
 REMOTE_DIR="/home/${ORIN_USER}/${PROJECT_NAME}"
 
-echo "🚀 Deploying ORAC STT to Orin Nano (${ORIN_HOST})"
+# Get commit message from argument or use default
+COMMIT_MSG="${1:-Update ORAC STT}"
 
-# Clone or update repository
-echo "📥 Updating code from Git..."
+echo "🚀 Deploying ORAC STT to Orin Nano (${ORIN_HOST})"
+echo "   Commit message: ${COMMIT_MSG}"
+echo
+
+# Check if there are changes to commit
+if [[ -n $(git status --porcelain) ]]; then
+    echo "📝 Committing local changes..."
+    git add -A
+    git commit -m "${COMMIT_MSG}" || {
+        echo "❌ No changes to commit or commit failed"
+        echo "   If you have untracked files, add them manually first"
+        exit 1
+    }
+    echo "✅ Changes committed"
+else
+    echo "✅ No local changes to commit"
+fi
+
+# Push to GitHub
+echo "📤 Pushing to GitHub..."
+git push origin master || {
+    echo "❌ Failed to push to GitHub"
+    echo "   Check your network connection and GitHub credentials"
+    exit 1
+}
+echo "✅ Pushed to GitHub"
+
+# Clone or update repository on Orin
+echo "📥 Updating code on Orin..."
 ssh ${ORIN_HOST} "
     if [ -d ${REMOTE_DIR}/.git ]; then
         echo 'Pulling latest changes...'
@@ -102,9 +133,16 @@ else
     echo "❌ Metrics endpoint failed!"
 fi
 
+# Test STT health endpoint
+echo "🎤 Testing STT health endpoint..."
+ssh ${ORIN_HOST} "curl -s http://localhost:7272/stt/v1/health" | jq . 2>/dev/null || echo "STT health check failed"
+
 # Show container logs
 echo "📋 Container logs:"
 ssh ${ORIN_HOST} "docker logs --tail 20 ${PROJECT_NAME}"
 
 echo "✅ Deployment complete!"
 echo "🌐 Service available at: http://${ORIN_HOST}:7272"
+echo ""
+echo "To test whisper.cpp transcription, run:"
+echo "  ./scripts/test_whisper_fix.sh"

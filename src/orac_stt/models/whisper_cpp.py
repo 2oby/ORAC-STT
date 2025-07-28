@@ -72,7 +72,9 @@ class WhisperCppModel:
                 wav.setnchannels(1)  # Mono
                 wav.setsampwidth(2)  # 16-bit
                 wav.setframerate(sample_rate)
-                wav.writeframes((audio_data * 32767).astype(np.int16).tobytes())
+                # Properly clip audio to prevent overflow when converting to int16
+                audio_int16 = np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
+                wav.writeframes(audio_int16.tobytes())
         
         try:
             # Build whisper.cpp command
@@ -80,8 +82,8 @@ class WhisperCppModel:
                 str(self.whisper_bin),
                 "-m", str(self.model_path),
                 "-f", tmp_path,
-                "--output-json",  # JSON output format
                 "--no-timestamps",  # Disable timestamps for faster inference
+                "--print-colors", "false",  # Disable color output
             ]
             
             # Add GPU flag if using CUDA (whisper.cpp uses --no-gpu to disable, GPU is default)
@@ -101,21 +103,16 @@ class WhisperCppModel:
                 check=True
             )
             
-            # Parse output (whisper.cpp outputs JSON to stdout with --output-json)
-            try:
-                # The JSON output is written to a file with .json extension
-                json_path = tmp_path + ".json"
-                if os.path.exists(json_path):
-                    with open(json_path, 'r') as f:
-                        output = json.load(f)
-                    os.unlink(json_path)  # Clean up JSON file
-                else:
-                    # Fallback: parse stdout
-                    output = {"text": result.stdout.strip()}
-                    
-            except json.JSONDecodeError:
-                # Fallback: return raw text
-                output = {"text": result.stdout.strip()}
+            # Parse text output from stdout
+            # Whisper.cpp outputs the transcription directly to stdout
+            transcribed_text = result.stdout.strip()
+            
+            # Log the raw output for debugging
+            logger.debug(f"Whisper.cpp stdout: {transcribed_text}")
+            logger.debug(f"Whisper.cpp stderr: {result.stderr}")
+            
+            # Create output dictionary
+            output = {"text": transcribed_text}
             
             # Add confidence score (whisper.cpp doesn't provide this directly)
             output["confidence"] = 0.95 if output.get("text") else 0.0
