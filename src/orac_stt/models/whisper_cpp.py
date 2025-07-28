@@ -107,8 +107,12 @@ class WhisperCppModel:
             # Whisper.cpp outputs the transcription directly to stdout
             transcribed_text = result.stdout.strip()
             
+            # Remove ANSI color codes if present
+            import re
+            transcribed_text = re.sub(r'\x1b\[[0-9;]*m', '', transcribed_text)
+            
             # Log the raw output for debugging
-            logger.debug(f"Whisper.cpp stdout: {transcribed_text}")
+            logger.debug(f"Whisper.cpp stdout (cleaned): {transcribed_text}")
             logger.debug(f"Whisper.cpp stderr: {result.stderr}")
             
             # Create output dictionary
