@@ -241,15 +241,23 @@ def setup_command_observer():
             # Use asyncio.run_coroutine_threadsafe for thread safety
             import asyncio
             try:
-                # Get the current event loop
-                loop = asyncio.get_event_loop()
-                asyncio.run_coroutine_threadsafe(
+                # Try to get the running event loop
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    # No running loop, skip notification
+                    logger.debug("No running event loop, skipping WebSocket notification")
+                    return
+                
+                # Schedule the coroutine in the event loop thread-safely
+                future = asyncio.run_coroutine_threadsafe(
                     notify_new_command(command.to_dict()), 
                     loop
                 )
-            except RuntimeError:
-                # If no event loop, create task normally
-                asyncio.create_task(notify_new_command(command.to_dict()))
+                # Don't wait for completion to avoid blocking
+                
+            except Exception as e:
+                logger.error(f"Error scheduling WebSocket notification: {e}")
         
         command_buffer.add_observer(on_new_command)
         logger.info("Set up command buffer observer for WebSocket notifications")

@@ -169,11 +169,15 @@ class CommandBuffer:
         Args:
             command: The new command to broadcast
         """
-        for observer in self._observers:
+        if not self._observers:
+            return
+            
+        for observer in self._observers[:]:  # Create a copy to avoid modification during iteration
             try:
                 observer(command)
             except Exception as e:
                 logger.error(f"Error notifying observer: {e}")
+                # Continue with other observers even if one fails
     
     @property
     def size(self) -> int:
