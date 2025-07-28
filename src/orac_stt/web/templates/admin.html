@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORAC STT Admin</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="ascii-corner top-left">╔═══╗</div>
+            <div class="ascii-corner bottom-right">╚═══╝</div>
+            <h1 class="title glitch">ORAC STT ADMIN</h1>
+            <p class="subtitle">Speech-to-Text Command Interface</p>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="status-indicators">
+                <div class="status-item">
+                    <div class="status-dot" id="connectionStatus"></div>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+                <div class="status-item">
+                    <span>Model:</span>
+                    <span id="currentModel">Loading...</span>
+                </div>
+            </div>
+            
+            <div class="model-selector">
+                <label for="modelDropdown">Select Model:</label>
+                <select id="modelDropdown" class="model-dropdown" disabled>
+                    <option>Loading models...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Commands Grid -->
+        <div id="commandsContainer">
+            <div class="commands-grid" id="commandsGrid">
+                <!-- Command tiles will be dynamically inserted here -->
+            </div>
+            
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <h3>No Commands Yet</h3>
+                <p>Transcribed commands will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Tile Template -->
+    <template id="commandTileTemplate">
+        <div class="command-tile">
+            <div class="command-header">
+                <span class="command-timestamp"></span>
+                <span class="command-confidence"></span>
+            </div>
+            <div class="command-text"></div>
+            <div class="command-footer">
+                <span class="command-duration"></span>
+                <div class="audio-controls">
+                    <button class="audio-btn play-btn">▶ PLAY</button>
+                    <audio class="command-audio" preload="none"></audio>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a0a;
+    color: #00ff41;
+    font-family: 'Courier New', monospace;
+    overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Scanlines effect */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        transparent 50%,
+        rgba(0, 255, 65, 0.02) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 999;
+}
+
+.container {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    border: 2px solid #00ff41;
+    background: rgba(0, 255, 65, 0.05);
+    position: relative;
+}
+
+.header::before,
+.header::after {
+    content: '◆';
+    position: absolute;
+    color: #00ff41;
+    font-size: 20px;
+}
+
+.header::before {
+    top: 10px;
+    left: 10px;
+}
+
+.header::after {
+    bottom: 10px;
+    right: 10px;
+}
+
+.title {
+    font-size: 2.5em;
+    text-shadow: 0 0 20px #00ff41;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 1.2em;
+    color: #00cc33;
+    opacity: 0.8;
+}
+
+/* Control Panel */
+.control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #00ff41;
+    background: rgba(0, 255, 65, 0.02);
+}
+
+.status-indicators {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #00ff41;
+    box-shadow: 0 0 10px #00ff41;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.disconnected {
+    background: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Model Selector */
+.model-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.model-selector label {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.model-dropdown {
+    background: #1a1a1a;
+    color: #00ff41;
+    border: 2px solid #00ff41;
+    padding: 8px 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.model-dropdown:hover {
+    background: rgba(0, 255, 65, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+}
+
+.model-dropdown:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Commands Grid */
+.commands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+/* Command Tile */
+.command-tile {
+    border: 2px solid #00ff41;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.command-tile::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: #00ff41;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.command-tile:hover::before {
+    opacity: 0.3;
+}
+
+.command-tile.new-command {
+    animation: flashRed 1s ease-out;
+}
+
+@keyframes flashRed {
+    0% {
+        border-color: #ff0000;
+        box-shadow: 0 0 20px #ff0000, inset 0 0 20px rgba(255, 0, 0, 0.3);
+    }
+    100% {
+        border-color: #00ff41;
+        box-shadow: none;
+    }
+}
+
+.command-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.command-timestamp {
+    font-size: 0.9em;
+    color: #00cc33;
+    opacity: 0.7;
+}
+
+.command-confidence {
+    font-size: 0.9em;
+    color: #00ff41;
+}
+
+.command-text {
+    font-size: 1.1em;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    word-wrap: break-word;
+}
+
+.command-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.command-duration {
+    font-size: 0.9em;
+    color: #00cc33;
+    opacity: 0.7;
+}
+
+/* Audio Player */
+.audio-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.audio-btn {
+    background: #1a1a1a;
+    color: #00ff41;
+    border: 1px solid #00ff41;
+    padding: 5px 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+.audio-btn:hover {
+    background: rgba(0, 255, 65, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.audio-btn:active {
+    transform: scale(0.95);
+}
+
+.audio-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loading States */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 255, 65, 0.3);
+    border-top-color: #00ff41;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    border: 2px dashed rgba(0, 255, 65, 0.3);
+    color: rgba(0, 255, 65, 0.5);
+}
+
+.empty-state h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .control-panel {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .commands-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .title {
+        font-size: 1.8em;
+    }
+}
+
+/* ASCII Art Decorations */
+.ascii-corner {
+    position: absolute;
+    font-size: 12px;
+    color: rgba(0, 255, 65, 0.3);
+    font-family: monospace;
+    line-height: 1;
+}
+
+.ascii-corner.top-left {
+    top: 5px;
+    left: 5px;
+}
+
+.ascii-corner.bottom-right {
+    bottom: 5px;
+    right: 5px;
+}
+
+/* Glitch Effect */
+@keyframes glitch {
+    0% {
+        text-shadow: 
+            0.05em 0 0 rgba(255, 0, 0, 0.75),
+            -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
+            0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+    }
+    25% {
+        text-shadow: 
+            0.05em 0 0 rgba(255, 0, 0, 0.75),
+            -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
+            0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+    }
+    26% {
+        text-shadow: none;
+    }
+    100% {
+        text-shadow: none;
+    }
+}
+
+.glitch {
+    animation: glitch 3s infinite;
+}

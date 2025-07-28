@@ -19,12 +19,16 @@ from ..audio.processor import AudioProcessor
 from ..audio.validator import AudioValidationError
 from ..models.unified_loader import UnifiedWhisperLoader
 from ..utils.logging import get_logger
+from ..history.command_buffer import CommandBuffer
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 # Global model loader instance
 _model_loader: Optional[UnifiedWhisperLoader] = None
+
+# Global command buffer instance
+_command_buffer: Optional[CommandBuffer] = None
 
 # Debug recording settings
 DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
@@ -58,6 +62,17 @@ def get_model_loader() -> UnifiedWhisperLoader:
     return _model_loader
 
 
+def get_command_buffer() -> CommandBuffer:
+    """Get or create command buffer instance."""
+    global _command_buffer
+    
+    if _command_buffer is None:
+        _command_buffer = CommandBuffer(max_size=5)
+        logger.info("Initialized command buffer")
+    
+    return _command_buffer
+
+
 def init_debug_recordings():
     """Initialize debug recordings directory."""
     if not DEBUG_RECORDINGS_DIR.exists():
@@ -65,7 +80,7 @@ def init_debug_recordings():
         logger.info(f"Created debug recordings directory: {DEBUG_RECORDINGS_DIR}")
 
 
-def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription: str = ""):
+def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription: str = "") -> Optional[Path]:
     """Save audio data as WAV file for debugging.
     
     Maintains a circular buffer of the last MAX_DEBUG_RECORDINGS files.
@@ -74,6 +89,9 @@ def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription
         audio_data: Audio samples as numpy array
         sample_rate: Sample rate
         transcription: Transcribed text (for filename)
+        
+    Returns:
+        Path to saved file or None if save failed
     """
     init_debug_recordings()
     
@@ -88,15 +106,18 @@ def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription
         sf.write(filepath, audio_data, sample_rate)
         logger.info(f"Saved debug recording: {filename} ({len(audio_data)/sample_rate:.2f}s)")
         
-        # Clean up old recordings
+        # Clean up old recordings (keep separate from command buffer recordings)
         recordings = sorted(DEBUG_RECORDINGS_DIR.glob("debug_*.wav"))
         if len(recordings) > MAX_DEBUG_RECORDINGS:
             for old_file in recordings[:-MAX_DEBUG_RECORDINGS]:
                 old_file.unlink()
                 logger.debug(f"Removed old debug recording: {old_file.name}")
+        
+        return filepath
                 
     except Exception as e:
         logger.error(f"Failed to save debug recording: {e}")
+        return None
 
 
 async def transcribe_audio(
@@ -206,7 +227,18 @@ async def transcribe_stream(
         )
         
         # Save debug recording
-        save_debug_recording(audio_data, sample_rate, text)
+        audio_path = save_debug_recording(audio_data, sample_rate, text)
+        
+        # Add to command buffer
+        command_buffer = get_command_buffer()
+        command_buffer.add_command(
+            text=text,
+            audio_path=audio_path,
+            duration=duration,
+            confidence=confidence,
+            processing_time=processing_time,
+            language=detected_language
+        )
         
         return TranscriptionResponse(
             text=text,

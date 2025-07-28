@@ -9,11 +9,12 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from .config.loader import load_config
 from .config.settings import Settings
 from .utils.logging import setup_logging, get_logger
-from .api import health, metrics, stt
+from .api import health, metrics, stt, admin
 from .core.shutdown import shutdown_handler
 
 
@@ -31,6 +32,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ORAC STT Service", extra={"version": "0.1.0"})
     
     # Initialize components here (model loading, etc.)
+    # Set up command buffer observer for WebSocket notifications
+    from .api.admin import setup_command_observer
+    setup_command_observer()
+    
     logger.info("Application startup complete")
     
     yield
@@ -71,6 +76,15 @@ def create_app(config_path: Optional[Path] = None) -> FastAPI:
     app.include_router(health.router, tags=["health"])
     app.include_router(metrics.router, tags=["monitoring"])
     app.include_router(stt.router, prefix="/stt/v1", tags=["stt"])
+    app.include_router(admin.router, prefix="/admin", tags=["admin"])
+    
+    # Mount static files
+    static_dir = Path(__file__).parent / "web" / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        logger.info(f"Mounted static files from {static_dir}")
+    else:
+        logger.warning(f"Static directory not found: {static_dir}")
     
     return app
 
