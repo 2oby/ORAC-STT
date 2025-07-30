@@ -27,6 +27,9 @@ class OracSTTAdmin {
         // Add mock data for demonstration
         this.addMockData();
         
+        // Set initial disconnected state
+        this.updateConnectionStatus(false);
+        
         // Load initial data
         await this.loadModels();
         await this.loadRecentCommands();
@@ -274,7 +277,7 @@ class OracSTTAdmin {
             this.modelDropdown.disabled = false;
             
             // Try real API
-            const response = await fetch('/admin/models');
+            const response = await fetch('/admin/models').catch(() => ({ ok: false }));
             if (response.ok) {
                 const apiModels = await response.json();
                 // Update with real data if available
@@ -301,7 +304,7 @@ class OracSTTAdmin {
     
     async loadRecentCommands() {
         try {
-            const response = await fetch('/admin/commands');
+            const response = await fetch('/admin/commands').catch(() => ({ ok: false }));
             if (response.ok) {
                 const commands = await response.json();
                 

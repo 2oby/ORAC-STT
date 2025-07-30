@@ -36,11 +36,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    padding: 15px 20px;
+    height: 80px;
 }
 
 .header-left {
-    flex: 0 0 auto;
+    flex: 1;
 }
 
 .header-right {
@@ -70,7 +71,7 @@ body {
 /* Control Panel */
 .control-panel {
     position: fixed;
-    top: 70px;
+    top: 80px;
     left: 0;
     right: 0;
     z-index: 99;
@@ -80,12 +81,14 @@ body {
     padding: 15px 20px;
     background: #000000;
     border-bottom: 1px solid #00ff41;
+    height: 60px;
 }
 
 .status-item {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .status-dot {
@@ -94,6 +97,7 @@ body {
     border-radius: 50%;
     background: #00ff41;
     box-shadow: 0 0 10px #00ff41;
+    flex-shrink: 0;
 }
 
 .status-dot.disconnected {
@@ -101,8 +105,13 @@ body {
     box-shadow: 0 0 10px #ff0000;
 }
 
+#connectionText {
+    white-space: nowrap;
+}
+
 .model-info {
     margin-left: 20px;
+    white-space: nowrap;
 }
 
 /* Model Selector */
@@ -125,7 +134,8 @@ body {
     font-size: 13px;
     cursor: pointer;
     outline: none;
-    min-width: 300px;
+    min-width: 400px;
+    max-width: 600px;
 }
 
 .model-dropdown:hover {
@@ -139,10 +149,10 @@ body {
 
 /* Commands Container */
 #commandsContainer {
-    margin-top: 130px;
+    margin-top: 140px;
     padding: 20px;
     padding-right: 40px;
-    min-height: calc(100vh - 130px);
+    min-height: calc(100vh - 140px);
 }
 
 /* Commands Grid */
