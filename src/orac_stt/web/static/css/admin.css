@@ -41,8 +41,8 @@ body::before {
 
 /* Header */
 .header {
-    margin-bottom: 40px;
-    padding: 20px;
+    margin-bottom: 30px;
+    padding: 15px 25px;
     border: 2px solid #00ff41;
     background: rgba(0, 255, 65, 0.05);
     position: relative;
@@ -52,6 +52,7 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: 60px;
 }
 
 .header-left {
@@ -62,15 +63,15 @@ body::before {
 
 .header-right {
     flex: 0 0 auto;
-    margin-left: 20px;
+    margin-left: 30px;
 }
 
 .logo {
-    height: 80px;
+    height: 60px;
     width: auto;
     border: 2px solid #00ff41;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
     transition: all 0.3s ease;
 }
 
@@ -98,16 +99,18 @@ body::before {
 }
 
 .title {
-    font-size: 2.5em;
+    font-size: 2.2em;
     text-shadow: 0 0 20px #00ff41;
-    letter-spacing: 3px;
-    margin-bottom: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+    line-height: 1;
 }
 
 .subtitle {
-    font-size: 1.2em;
+    font-size: 1.0em;
     color: #00cc33;
     opacity: 0.8;
+    margin: 0;
 }
 
 /* Control Panel */
@@ -115,8 +118,8 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding: 20px;
+    margin-bottom: 25px;
+    padding: 15px 20px;
     border: 1px solid #00ff41;
     background: rgba(0, 255, 65, 0.02);
 }
@@ -349,7 +352,7 @@ body::before {
     }
     
     .logo {
-        height: 60px;
+        height: 50px;
     }
     
     .control-panel {
@@ -362,7 +365,11 @@ body::before {
     }
     
     .title {
-        font-size: 1.8em;
+        font-size: 1.6em;
+    }
+    
+    .subtitle {
+        font-size: 0.9em;
     }
 }
 
