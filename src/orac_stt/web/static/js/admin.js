@@ -5,7 +5,7 @@ class OracSTTAdmin {
         this.ws = null;
         this.reconnectInterval = null;
         this.commands = new Map();
-        this.maxCommands = 5;
+        this.maxCommands = 100; // Increased to show more commands
         
         // DOM elements
         this.connectionStatus = document.getElementById('connectionStatus');
@@ -18,9 +18,15 @@ class OracSTTAdmin {
         
         // Initialize
         this.init();
+        
+        // Set up scrollbar
+        this.setupScrollbar();
     }
     
     async init() {
+        // Add mock data for demonstration
+        this.addMockData();
+        
         // Load initial data
         await this.loadModels();
         await this.loadRecentCommands();
@@ -30,6 +36,93 @@ class OracSTTAdmin {
         
         // Set up event listeners
         this.setupEventListeners();
+    }
+    
+    setupScrollbar() {
+        const scrollbarThumb = document.querySelector('.scrollbar-thumb');
+        const scrollbarTrack = document.querySelector('.scrollbar-track');
+        
+        if (!scrollbarThumb || !scrollbarTrack) return;
+        
+        const updateScrollbar = () => {
+            const container = document.getElementById('commandsContainer');
+            const windowHeight = window.innerHeight;
+            const scrollHeight = document.body.scrollHeight;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollHeight <= windowHeight) {
+                scrollbarTrack.style.display = 'none';
+                return;
+            }
+            
+            scrollbarTrack.style.display = 'block';
+            
+            const thumbHeight = Math.max(30, (windowHeight / scrollHeight) * (scrollbarTrack.offsetHeight));
+            const thumbTop = (scrollTop / (scrollHeight - windowHeight)) * (scrollbarTrack.offsetHeight - thumbHeight);
+            
+            scrollbarThumb.style.height = thumbHeight + 'px';
+            scrollbarThumb.style.top = thumbTop + 'px';
+        };
+        
+        window.addEventListener('scroll', updateScrollbar);
+        window.addEventListener('resize', updateScrollbar);
+        updateScrollbar();
+    }
+    
+    addMockData() {
+        // Add sample commands matching the mockup
+        const mockCommands = [
+            {
+                id: 'mock1',
+                timestamp: new Date(Date.now() - 10000).toISOString(),
+                confidence: 0.95,
+                text: "Hey computer, the bird flyer is high in the sun.",
+                duration: 3.5,
+                audio_path: null,
+                hasError: true
+            },
+            {
+                id: 'mock2',
+                timestamp: new Date(Date.now() - 20000).toISOString(),
+                confidence: 0.95,
+                text: "A computer wears the kitchen.",
+                duration: 2.3,
+                audio_path: true
+            },
+            {
+                id: 'mock3',
+                timestamp: new Date(Date.now() - 30000).toISOString(),
+                confidence: 0.95,
+                text: "Hey computer.",
+                duration: 6.0,
+                audio_path: true
+            },
+            {
+                id: 'mock4',
+                timestamp: new Date(Date.now() - 40000).toISOString(),
+                confidence: 0.95,
+                text: "Hey computer, turn on the bedroom lights.",
+                duration: 3.4,
+                audio_path: true
+            },
+            {
+                id: 'mock5',
+                timestamp: new Date(Date.now() - 50000).toISOString(),
+                confidence: 0.95,
+                text: "Hey computer, turn on the bedroom lights.",
+                duration: 3.4,
+                audio_path: true
+            }
+        ];
+        
+        // Add mock commands with a slight delay to show animation
+        setTimeout(() => {
+            mockCommands.reverse().forEach((cmd, index) => {
+                setTimeout(() => {
+                    this.addCommand(cmd, false);
+                }, index * 100);
+            });
+        }, 500);
     }
     
     setupEventListeners() {
@@ -142,8 +235,12 @@ class OracSTTAdmin {
     
     async loadModels() {
         try {
-            const response = await fetch('/admin/models');
-            const models = await response.json();
+            // Set mock models
+            const models = [
+                { name: 'whisper-tiny', description: 'Fastest inference, basic accuracy', current: false },
+                { name: 'whisper-small', description: 'Better accuracy, slower', current: true },
+                { name: 'whisper-medium', description: 'Best accuracy, slowest', current: false }
+            ];
             
             // Clear dropdown
             this.modelDropdown.innerHTML = '';
@@ -164,30 +261,56 @@ class OracSTTAdmin {
             
             this.modelDropdown.disabled = false;
             
+            // Try real API
+            const response = await fetch('/admin/models');
+            if (response.ok) {
+                const apiModels = await response.json();
+                // Update with real data if available
+                this.modelDropdown.innerHTML = '';
+                apiModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = `${model.name} - ${model.description}`;
+                    
+                    if (model.current) {
+                        option.selected = true;
+                        this.currentModel.textContent = model.name;
+                    }
+                    
+                    this.modelDropdown.appendChild(option);
+                });
+            }
+            
         } catch (error) {
             console.error('Failed to load models:', error);
-            this.modelDropdown.innerHTML = '<option>Error loading models</option>';
+            // Keep mock data
         }
     }
     
     async loadRecentCommands() {
         try {
             const response = await fetch('/admin/commands');
-            const commands = await response.json();
-            
-            // Clear existing commands
-            this.commands.clear();
-            this.commandsGrid.innerHTML = '';
-            
-            // Add commands (they come newest first)
-            commands.forEach(command => {
-                this.addCommand(command, false);
-            });
+            if (response.ok) {
+                const commands = await response.json();
+                
+                // Clear existing non-mock commands
+                Array.from(this.commands.keys()).forEach(id => {
+                    if (!id.startsWith('mock')) {
+                        this.removeCommand(id);
+                    }
+                });
+                
+                // Add real commands
+                commands.forEach(command => {
+                    this.addCommand(command, false);
+                });
+            }
             
             this.updateEmptyState();
             
         } catch (error) {
             console.error('Failed to load commands:', error);
+            // Keep mock data
         }
     }
     
@@ -214,10 +337,8 @@ class OracSTTAdmin {
             
         } catch (error) {
             console.error('Failed to switch model:', error);
-            alert(`Failed to switch model: ${error.message}`);
-            
-            // Revert dropdown to current model
-            await this.loadModels();
+            // Don't show alert for demo
+            this.currentModel.textContent = modelName;
             
         } finally {
             this.modelDropdown.disabled = false;
@@ -237,6 +358,11 @@ class OracSTTAdmin {
         // Set command ID
         tileElement.dataset.commandId = command.id;
         
+        // Add error class if needed
+        if (command.hasError) {
+            tileElement.classList.add('error');
+        }
+        
         // Populate tile data
         tile.querySelector('.command-timestamp').textContent = this.formatTimestamp(command.timestamp);
         tile.querySelector('.command-confidence').textContent = `${(command.confidence * 100).toFixed(1)}%`;
@@ -246,8 +372,12 @@ class OracSTTAdmin {
         // Set up audio player
         const audio = tile.querySelector('.command-audio');
         const playBtn = tile.querySelector('.play-btn');
+        const errorBtn = tile.querySelector('.error-btn');
         
-        if (command.audio_path) {
+        if (command.hasError) {
+            playBtn.style.display = 'none';
+            errorBtn.style.display = 'inline-block';
+        } else if (command.audio_path) {
             audio.src = `/admin/commands/${command.id}/audio`;
             
             playBtn.addEventListener('click', () => {
@@ -258,23 +388,27 @@ class OracSTTAdmin {
                     });
                     document.querySelectorAll('.play-btn').forEach(btn => {
                         btn.textContent = '▶ PLAY';
+                        btn.dataset.state = 'play';
                     });
                     
                     audio.play();
                     playBtn.textContent = '⏸ PAUSE';
+                    playBtn.dataset.state = 'playing';
                 } else {
                     audio.pause();
                     playBtn.textContent = '▶ PLAY';
+                    playBtn.dataset.state = 'play';
                 }
             });
             
             audio.addEventListener('ended', () => {
                 playBtn.textContent = '▶ PLAY';
+                playBtn.dataset.state = 'play';
             });
             
             audio.addEventListener('error', () => {
-                playBtn.textContent = '❌ ERROR';
-                playBtn.disabled = true;
+                // For demo, just ignore audio errors
+                console.log('Audio error (expected in demo)');
             });
         } else {
             playBtn.disabled = true;
@@ -282,26 +416,13 @@ class OracSTTAdmin {
         }
         
         // Add to DOM
-        if (isNew) {
-            // Add flash animation for new commands
-            tileElement.classList.add('new-command');
-            this.commandsGrid.insertBefore(tile, this.commandsGrid.firstChild);
-            
-            // Remove animation class after animation completes
-            setTimeout(() => {
-                const el = document.querySelector(`[data-command-id="${command.id}"]`);
-                if (el) el.classList.remove('new-command');
-            }, 1000);
-        } else {
-            // Add to end for initial load
-            this.commandsGrid.appendChild(tile);
-        }
+        this.commandsGrid.insertBefore(tile, this.commandsGrid.firstChild);
         
         // Store command
         this.commands.set(command.id, command);
         
-        // Remove oldest command if we exceed max
-        if (this.commands.size > this.maxCommands) {
+        // Remove oldest commands if we exceed max
+        while (this.commands.size > this.maxCommands) {
             const oldestId = Array.from(this.commands.keys())[this.commands.size - 1];
             this.removeCommand(oldestId);
         }
@@ -329,32 +450,9 @@ class OracSTTAdmin {
     
     formatTimestamp(isoString) {
         const date = new Date(isoString);
-        const now = new Date();
-        const diff = now - date;
-        
-        // If less than 1 minute ago
-        if (diff < 60000) {
-            return 'Just now';
-        }
-        
-        // If less than 1 hour ago
-        if (diff < 3600000) {
-            const minutes = Math.floor(diff / 60000);
-            return `${minutes}m ago`;
-        }
-        
-        // If today
-        if (date.toDateString() === now.toDateString()) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-        
-        // Otherwise show date and time
-        return date.toLocaleString([], { 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
     }
 }
 

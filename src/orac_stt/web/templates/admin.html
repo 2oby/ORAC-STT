@@ -13,8 +13,7 @@
             <div class="header-content">
                 <div class="header-left">
                     <div class="ascii-corner top-left">╔═══╗</div>
-                    <h1 class="title glitch">ORAC STT ADMIN</h1>
-                    <p class="subtitle">Speech-to-Text Command Interface</p>
+                    <h1 class="title glitch">ORAC STT</h1>
                 </div>
                 <div class="header-right">
                     <img src="/static/images/ORAC_STT_LOGO.jpg" alt="ORAC STT" class="logo">
@@ -25,19 +24,14 @@
 
         <!-- Control Panel -->
         <div class="control-panel">
-            <div class="status-indicators">
-                <div class="status-item">
-                    <div class="status-dot" id="connectionStatus"></div>
-                    <span id="connectionText">Connecting...</span>
-                </div>
-                <div class="status-item">
-                    <span>Model:</span>
-                    <span id="currentModel">Loading...</span>
-                </div>
+            <div class="status-item">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">Connecting...</span>
+                <span class="model-info">Model: <span id="currentModel">Loading...</span></span>
             </div>
             
             <div class="model-selector">
-                <label for="modelDropdown">Select Model:</label>
+                <label for="modelDropdown">SELECT MODEL:</label>
                 <select id="modelDropdown" class="model-dropdown" disabled>
                     <option>Loading models...</option>
                 </select>
@@ -51,7 +45,7 @@
             </div>
             
             <!-- Empty State -->
-            <div class="empty-state" id="emptyState">
+            <div class="empty-state" id="emptyState" style="display: none;">
                 <h3>No Commands Yet</h3>
                 <p>Transcribed commands will appear here</p>
             </div>
@@ -69,12 +63,18 @@
             <div class="command-footer">
                 <span class="command-duration"></span>
                 <div class="audio-controls">
-                    <button class="audio-btn play-btn">▶ PLAY</button>
+                    <button class="audio-btn play-btn" data-state="play">▶ PLAY</button>
+                    <button class="audio-btn error-btn" style="display: none;">✖ ERROR</button>
                     <audio class="command-audio" preload="none"></audio>
                 </div>
             </div>
         </div>
     </template>
+    
+    <!-- Scrollbar indicator -->
+    <div class="scrollbar-track">
+        <div class="scrollbar-thumb"></div>
+    </div>
 
     <script src="/static/js/admin.js"></script>
 </body>
