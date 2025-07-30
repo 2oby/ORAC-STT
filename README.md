@@ -4,7 +4,8 @@ The ORAC STT (Speech-to-Text) Service is designed to run on NVIDIA Orin Nano, pr
 
 ## Key Features
 
-- **HTTP API**: Accepts POST requests at `/stt/v1/stream` for 16kHz 16-bit mono WAV/PCM audio. Supports model selection via `X-Model-Name` header and optional Bearer token authentication.
+- **HTTP STT API**: Accepts POST requests at `/stt/v1/stream` for 16kHz 16-bit mono WAV/PCM audio. Supports model selection via `X-Model-Name` header and optional Bearer token authentication.
+- **Web Admin Interface**: Real-time monitoring dashboard at `/admin/` with command history, audio playback, and model management.
 - **gRPC Stub**: Includes a bidirectional gRPC endpoint (disabled by default) with protobuf schema for future streaming support.
 - **Model Management**: Uses whisper.cpp with GGML quantized models (tiny/base/small available) optimized for edge deployment. Built specifically for Orin Nano with CUDA compute capability 8.7.
 - **Egress to Command API**: Posts transcribed text, confidence, and language to the Command API, with robust error handling and exponential backoff retries.
@@ -37,6 +38,13 @@ The service uses a configuration file system with environment variable overrides
 
 ## Getting Started
 
+### End User Quick Start
+
+1. **Access the Web Interface**: Open `http://orac-stt-host:7272/admin/` in your browser
+2. **Monitor Commands**: View real-time transcriptions as they appear
+3. **Play Audio**: Click play buttons to hear recorded commands
+4. **Check Status**: Verify "Dashboard Connected" status in the top bar
+
 ### Quick Deploy to Orin Nano
 ```bash
 # Deploy and test
@@ -44,12 +52,30 @@ cd scripts
 ./deploy_and_test.sh
 
 # Check logs
-ssh orin3 "docker logs -f orac-stt"
+ssh orac-stt-host "docker logs -f orac-stt"
 
 # Test endpoints
-curl http://orin3:7272/health
-curl http://orin3:7272/metrics
+curl http://orac-stt-host:7272/health
+curl http://orac-stt-host:7272/metrics
 ```
+
+### Web Admin Interface
+
+The admin dashboard provides real-time monitoring and management:
+
+**URL**: `http://orac-stt-host:7272/admin/`
+
+**Features**:
+- **Real-time Command Feed**: Live transcriptions with timestamps and confidence scores
+- **Audio Playback**: Play/pause controls for each recorded command
+- **Connection Status**: WebSocket connection indicator ("Dashboard Connected/Disconnected")
+- **Command Cards**: Grid layout showing:
+  - Timestamp (HH:MM format)
+  - Confidence percentage
+  - Transcribed text
+  - Audio duration
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Error Handling**: Visual indicators for failed transcriptions
 
 ### Development
 1. Copy and customize configuration: `cp config.toml.example config.toml`
@@ -75,7 +101,7 @@ The whisper.cpp binaries are built directly on the Orin Nano during first deploy
 cd scripts && ./deploy_and_test.sh
 
 # Manual build (if needed)
-ssh orin3
+ssh orac-stt-host
 cd /home/toby/orac-stt/third_party/whisper_cpp
 ./build_whisper_cpp.sh
 ```
@@ -108,4 +134,65 @@ NVIDIA CUDA 12.6 Runtime Container (~500MB)
 └── GPU acceleration via cuBLAS
 ```
 
-For detailed setup, deployment, and API usage, see the `CURRENT_FOCUS.md` file.
+## API Reference
+
+### STT Endpoint
+
+**POST** `/stt/v1/stream`
+
+Transcribes audio to text using whisper.cpp models.
+
+**Headers**:
+- `Content-Type: audio/wav` (required)
+- `X-Model-Name: base` (optional, defaults to "base")
+- `Authorization: Bearer <token>` (optional)
+
+**Request Body**: 16kHz, 16-bit mono WAV audio data
+
+**Response**: `202 Accepted` with JSON:
+```json
+{
+  "text": "transcribed speech text",
+  "confidence": 0.95,
+  "language": "en",
+  "duration_ms": 1450
+}
+```
+
+**Example**:
+```bash
+# Test with audio file
+curl -X POST \
+  -H "Content-Type: audio/wav" \
+  -H "X-Model-Name: base" \
+  --data-binary @test_audio.wav \
+  http://orac-stt-host:7272/stt/v1/stream
+
+# Response
+{"text": "hello world", "confidence": 0.92, "language": "en", "duration_ms": 800}
+```
+
+### Health & Monitoring
+
+**GET** `/health` - Service health status
+```bash
+curl http://orac-stt-host:7272/health
+# {"status":"healthy","timestamp":"2025-07-30T12:00:00Z","checks":{...}}
+```
+
+**GET** `/metrics` - Prometheus metrics
+```bash
+curl http://orac-stt-host:7272/metrics
+# orac_stt_requests_total 42
+# orac_stt_latency_seconds_histogram_bucket{le="0.5"} 38
+```
+
+### Supported Models
+
+| Model Name | Size | Speed | Quality |
+|------------|------|-------|---------|
+| `tiny`     | 39MB | Fastest | Basic |
+| `base`     | 147MB | Balanced | Good (default) |
+| `small`    | 244MB | Slower | Better |
+
+For detailed setup, deployment, and development information, see the `CURRENT_FOCUS.md` file.

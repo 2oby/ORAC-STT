@@ -54,16 +54,42 @@
 
 ### 🚀 NEXT PRIORITIES
 
-**Immediate:**
-- Integration with Hey_Orac complete and stable
-- Admin interface operational for monitoring and model management
-- Service ready for production use
+**Current Focus Areas (Medium Priority):**
+
+### 1. **Model Performance Verification** 
+Validate and optimize whisper.cpp models:
+- **Benchmark different model sizes** (tiny/base/small/medium) for accuracy vs speed
+- **Test inference latency** across various audio lengths and content types
+- **GPU utilization monitoring** during transcription workloads
+- **Memory usage analysis** for each model size on Orin Nano
+- **Quality assessment** with real voice commands vs test audio
+
+### 2. **ORAC Core Integration** 
+Implement upstream command processing:
+- **Free text parsing API** - Send transcribed text to ORAC Core for command interpretation
+- **Command validation** - Handle structured commands vs natural language
+- **Response handling** - Process ORAC Core responses and status updates
+- **Error propagation** - Forward parsing errors back through the pipeline
+- **Authentication** - Secure communication with ORAC Core backend
+
+### 3. **Streaming STT Implementation**
+Real-time transcription for better responsiveness:
+- **Stream processing** - Begin STT on initial audio chunks before speech completion
+- **Partial results** - Return intermediate transcriptions during ongoing speech
+- **Confidence thresholding** - Balance early results vs accuracy
+- **Stream buffering** - Optimize chunk sizes for latency vs accuracy
+- **VAD integration** - Use voice activity detection to trigger streaming start
 
 **Future Enhancements (Low Priority):**
 - Additional model formats (OpenAI Whisper API compatibility)
 - Batch processing endpoints
 - Historical analytics and metrics dashboard
-- Voice activity detection improvements
+- Enhanced voice activity detection
+
+### 🎯 **Implementation Priorities:**
+1. **Model Performance Verification** - Establish baseline metrics and optimize
+2. **ORAC Core Integration** - Enable command parsing and execution  
+3. **Streaming STT** - Reduce end-to-end latency with real-time processing
 
 ---
 
