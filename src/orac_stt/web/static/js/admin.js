@@ -45,28 +45,37 @@ class OracSTTAdmin {
         if (!scrollbarThumb || !scrollbarTrack) return;
         
         const updateScrollbar = () => {
-            const container = document.getElementById('commandsContainer');
             const windowHeight = window.innerHeight;
             const scrollHeight = document.body.scrollHeight;
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             
-            if (scrollHeight <= windowHeight) {
+            // Only show scrollbar if content is taller than viewport
+            if (scrollHeight <= windowHeight + 10) { // Adding small buffer
                 scrollbarTrack.style.display = 'none';
                 return;
             }
             
             scrollbarTrack.style.display = 'block';
             
-            const thumbHeight = Math.max(30, (windowHeight / scrollHeight) * (scrollbarTrack.offsetHeight));
-            const thumbTop = (scrollTop / (scrollHeight - windowHeight)) * (scrollbarTrack.offsetHeight - thumbHeight);
+            const trackHeight = scrollbarTrack.offsetHeight;
+            const thumbHeight = Math.max(30, (windowHeight / scrollHeight) * trackHeight);
+            const maxThumbTop = trackHeight - thumbHeight;
+            const thumbTop = (scrollTop / (scrollHeight - windowHeight)) * maxThumbTop;
             
             scrollbarThumb.style.height = thumbHeight + 'px';
-            scrollbarThumb.style.top = thumbTop + 'px';
+            scrollbarThumb.style.top = Math.min(Math.max(0, thumbTop), maxThumbTop) + 'px';
         };
         
+        // Update scrollbar on various events
         window.addEventListener('scroll', updateScrollbar);
         window.addEventListener('resize', updateScrollbar);
-        updateScrollbar();
+        
+        // Also update when commands are added/removed
+        const observer = new MutationObserver(updateScrollbar);
+        observer.observe(this.commandsGrid, { childList: true });
+        
+        // Initial update
+        setTimeout(updateScrollbar, 100);
     }
     
     addMockData() {
@@ -115,7 +124,9 @@ class OracSTTAdmin {
             }
         ];
         
-        // Add mock commands with a slight delay to show animation
+        // Don't add mock commands automatically - wait for real data
+        // Comment out for production
+        /*
         setTimeout(() => {
             mockCommands.reverse().forEach((cmd, index) => {
                 setTimeout(() => {
@@ -123,6 +134,7 @@ class OracSTTAdmin {
                 }, index * 100);
             });
         }, 500);
+        */
     }
     
     setupEventListeners() {
