@@ -219,10 +219,10 @@ class OracSTTAdmin {
     updateConnectionStatus(connected) {
         if (connected) {
             this.connectionStatus.classList.remove('disconnected');
-            this.connectionText.textContent = 'Connected';
+            this.connectionText.textContent = 'Dashboard Connected';
         } else {
             this.connectionStatus.classList.add('disconnected');
-            this.connectionText.textContent = 'Disconnected';
+            this.connectionText.textContent = 'Dashboard Disconnected';
         }
     }
     
