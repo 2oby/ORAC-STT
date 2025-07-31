@@ -6,6 +6,7 @@ class OracSTTAdmin {
         this.reconnectInterval = null;
         this.commands = new Map();
         this.maxCommands = 100; // Increased to show more commands
+        this.cleanupInterval = null;
         
         // DOM elements
         this.connectionStatus = document.getElementById('connectionStatus');
@@ -39,6 +40,9 @@ class OracSTTAdmin {
         
         // Set up event listeners
         this.setupEventListeners();
+        
+        // Start cleanup interval for old commands
+        this.startCleanupInterval();
     }
     
     setupScrollbar() {
@@ -433,8 +437,11 @@ class OracSTTAdmin {
         // Add to DOM
         this.commandsGrid.insertBefore(tile, this.commandsGrid.firstChild);
         
-        // Store command
-        this.commands.set(command.id, command);
+        // Store command with timestamp
+        this.commands.set(command.id, {
+            ...command,
+            timestamp: command.timestamp || new Date().toISOString()
+        });
         
         // Remove oldest commands if we exceed max
         while (this.commands.size > this.maxCommands) {
@@ -468,6 +475,90 @@ class OracSTTAdmin {
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
         return `${hours}:${minutes}`;
+    }
+    
+    startCleanupInterval() {
+        // Clean up commands older than 6 hours every minute
+        this.cleanupInterval = setInterval(() => {
+            this.cleanupOldCommands();
+        }, 60000); // Check every minute
+        
+        // Initial cleanup
+        this.cleanupOldCommands();
+    }
+    
+    cleanupOldCommands() {
+        const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000); // 6 hours in milliseconds
+        const commandsToRemove = [];
+        
+        this.commands.forEach((command, id) => {
+            const commandTime = new Date(command.timestamp).getTime();
+            if (commandTime < sixHoursAgo) {
+                commandsToRemove.push(id);
+            }
+        });
+        
+        // Remove old commands
+        commandsToRemove.forEach(id => {
+            console.log(`Removing old command: ${id}`);
+            this.removeCommand(id);
+        });
+        
+        if (commandsToRemove.length > 0) {
+            console.log(`Cleaned up ${commandsToRemove.length} old commands`);
+            this.updateEmptyState();
+        }
+    }
+    
+    showSettingsPopup() {
+        // Get the machine's IP or hostname
+        const host = window.location.hostname || 'localhost';
+        const port = window.location.port || '7272';
+        const webhookUrl = `http://${host}:${port}/stt/v1/stream`;
+        
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'settings-overlay';
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        };
+        
+        // Create popup content
+        const popup = document.createElement('div');
+        popup.className = 'settings-popup';
+        popup.innerHTML = `
+            <h3>STT API Endpoint</h3>
+            <p>Use this URL to send audio streams to ORAC STT:</p>
+            <div class="webhook-url-container">
+                <input type="text" class="webhook-url" value="${webhookUrl}" readonly>
+                <button class="copy-btn" onclick="window.oracAdmin.copyWebhookUrl('${webhookUrl}', this)">COPY</button>
+            </div>
+            <button class="close-btn" onclick="this.closest('.settings-overlay').remove()">CLOSE</button>
+        `;
+        
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    }
+    
+    copyWebhookUrl(url, button) {
+        navigator.clipboard.writeText(url).then(() => {
+            const originalText = button.textContent;
+            button.textContent = 'COPIED!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy URL:', err);
+            // Fallback: select the input
+            const input = button.previousElementSibling;
+            input.select();
+            document.execCommand('copy');
+        });
     }
 }
 

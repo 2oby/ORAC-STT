@@ -406,3 +406,121 @@ body {
         clip-path: inset(58% 0 43% 0);
     }
 }
+
+/* Settings Button */
+.settings-btn {
+    background: transparent;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-btn:hover {
+    background: #00ff41;
+    color: #000000;
+    transform: rotate(90deg);
+}
+
+/* Settings Popup */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s;
+}
+
+.settings-popup {
+    background: #000000;
+    border: 2px solid #00ff41;
+    padding: 30px;
+    min-width: 500px;
+    max-width: 90%;
+    animation: slideIn 0.3s;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+.settings-popup h3 {
+    color: #00ff41;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    text-transform: uppercase;
+}
+
+.settings-popup p {
+    color: rgba(0, 255, 65, 0.8);
+    margin-bottom: 20px;
+}
+
+.webhook-url-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.webhook-url {
+    flex: 1;
+    background: #000000;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.copy-btn, .close-btn {
+    background: #000000;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    padding: 10px 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover, .close-btn:hover {
+    background: #00ff41;
+    color: #000000;
+}
+
+.copy-btn.copied {
+    background: #00ff41;
+    color: #000000;
+}
+
+.close-btn {
+    width: 100%;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to { 
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
