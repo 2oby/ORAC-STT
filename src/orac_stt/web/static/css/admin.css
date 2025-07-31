@@ -82,13 +82,14 @@ body {
     background: #000000;
     border-bottom: 1px solid #00ff41;
     height: 60px;
+    gap: 20px;
 }
 
 .status-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-shrink: 0;
+    flex: 1;
 }
 
 .status-dot {
@@ -122,6 +123,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 0 0 auto;
 }
 
 .model-selector label {
@@ -137,8 +139,8 @@ body {
     font-size: 13px;
     cursor: pointer;
     outline: none;
-    min-width: 400px;
-    max-width: 600px;
+    min-width: 250px;
+    max-width: 400px;
 }
 
 .model-dropdown:hover {
@@ -152,10 +154,10 @@ body {
 
 /* Commands Container */
 #commandsContainer {
-    margin-top: 140px;
+    margin-top: 160px;
     padding: 20px;
     padding-right: 40px;
-    min-height: calc(100vh - 140px);
+    min-height: calc(100vh - 160px);
 }
 
 /* Commands Grid */
@@ -361,6 +363,11 @@ body {
     
     .scrollbar-track {
         right: 5px;
+    }
+    
+    #commandsContainer {
+        margin-top: 180px;
+        min-height: calc(100vh - 180px);
     }
 }
 
