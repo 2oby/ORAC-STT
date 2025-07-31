@@ -529,7 +529,7 @@ class OracSTTAdmin {
         const popup = document.createElement('div');
         popup.className = 'settings-popup';
         popup.innerHTML = `
-            <h3>STT API Endpoint</h3>
+            <h3>API Information</h3>
             <p>Use this URL to send audio streams to ORAC STT:</p>
             <div class="webhook-url-container">
                 <input type="text" class="webhook-url" value="${webhookUrl}" readonly>
