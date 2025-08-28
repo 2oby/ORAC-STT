@@ -22,7 +22,8 @@ torch==2.1.0
 torchaudio==2.1.0
 openai-whisper==20231117
 
-# HTTP client (Phase 3)
+# HTTP client
+aiohttp==3.9.1
 # httpx==0.25.2
 # tenacity==8.2.3
 

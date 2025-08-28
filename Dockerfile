@@ -41,6 +41,10 @@ RUN pip install --no-cache-dir \
     librosa==0.10.1 \
     soundfile==0.12.1
 
+# Install HTTP client for ORAC Core integration
+RUN pip install --no-cache-dir \
+    aiohttp==3.9.1
+
 # We'll use whisper.cpp instead of PyTorch for better performance on Jetson
 # The whisper.cpp binaries will be built on the device and copied in
 
