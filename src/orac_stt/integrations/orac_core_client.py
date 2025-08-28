@@ -7,6 +7,9 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Global client instance
+_orac_core_client: Optional['ORACCoreClient'] = None
+
 
 class ORACCoreClient:
     """Client for forwarding transcriptions to ORAC Core with topic support."""
@@ -124,3 +127,35 @@ class ORACCoreClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.close()
+
+
+def get_orac_core_client() -> ORACCoreClient:
+    """Get or create the global ORAC Core client instance."""
+    global _orac_core_client
+    if _orac_core_client is None:
+        _orac_core_client = ORACCoreClient()
+    return _orac_core_client
+
+
+def update_orac_core_client(base_url: str, timeout: int = 30) -> None:
+    """Update the global ORAC Core client configuration."""
+    global _orac_core_client
+    
+    # Close existing client if it exists
+    if _orac_core_client is not None:
+        import asyncio
+        try:
+            # Try to close gracefully
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Schedule closure without waiting
+                asyncio.create_task(_orac_core_client.close())
+            else:
+                # Run closure synchronously
+                asyncio.run(_orac_core_client.close())
+        except Exception as e:
+            logger.warning(f"Error closing ORAC Core client: {e}")
+    
+    # Create new client with updated config
+    _orac_core_client = ORACCoreClient(base_url=base_url, timeout=timeout)
+    logger.info(f"Updated ORAC Core client: {base_url} (timeout: {timeout}s)")

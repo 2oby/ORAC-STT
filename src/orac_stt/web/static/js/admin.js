@@ -510,11 +510,22 @@ class OracSTTAdmin {
         }
     }
     
-    showSettingsPopup() {
+    async showSettingsPopup() {
         // Get the machine's IP or hostname
         const host = window.location.hostname || 'localhost';
         const port = window.location.port || '7272';
         const webhookUrl = `http://${host}:${port}/stt/v1/stream`;
+        
+        // Load current ORAC Core config
+        let oracCoreConfig = { url: 'http://192.168.8.191:8000', timeout: 30 };
+        try {
+            const response = await fetch('/admin/config/orac-core');
+            if (response.ok) {
+                oracCoreConfig = await response.json();
+            }
+        } catch (error) {
+            console.error('Failed to load ORAC Core config:', error);
+        }
         
         // Create popup overlay
         const overlay = document.createElement('div');
@@ -529,12 +540,32 @@ class OracSTTAdmin {
         const popup = document.createElement('div');
         popup.className = 'settings-popup';
         popup.innerHTML = `
-            <h3>API Information</h3>
-            <p>Use this URL to send audio streams to ORAC STT:</p>
-            <div class="webhook-url-container">
-                <input type="text" class="webhook-url" value="${webhookUrl}" readonly>
-                <button class="copy-btn" onclick="window.oracAdmin.copyWebhookUrl('${webhookUrl}', this)">COPY</button>
+            <h3>Configuration</h3>
+            
+            <!-- ORAC STT Webhook URL Section -->
+            <div class="config-section">
+                <h4>ORAC STT Webhook URL</h4>
+                <p>Use this URL in Hey ORAC wake word settings:</p>
+                <div class="webhook-url-container">
+                    <input type="text" class="webhook-url" value="${webhookUrl}" readonly>
+                    <button class="copy-btn" onclick="window.oracAdmin.copyWebhookUrl('${webhookUrl}', this)">COPY</button>
+                </div>
             </div>
+            
+            <!-- ORAC Core Configuration Section -->
+            <div class="config-section">
+                <h4>ORAC Core Target URL</h4>
+                <p>Configure where transcriptions are sent:</p>
+                <div class="orac-core-config">
+                    <div class="input-group">
+                        <input type="text" id="oracCoreUrl" class="config-input" value="${oracCoreConfig.url}" placeholder="http://192.168.8.191:8000">
+                        <button class="test-btn" onclick="window.oracAdmin.testOracCoreConnection()">TEST</button>
+                    </div>
+                    <div class="config-status" id="oracCoreStatus"></div>
+                    <button class="save-btn" onclick="window.oracAdmin.saveOracCoreConfig()">SAVE CONFIG</button>
+                </div>
+            </div>
+            
             <button class="close-btn" onclick="this.closest('.settings-overlay').remove()">CLOSE</button>
         `;
         
@@ -559,6 +590,83 @@ class OracSTTAdmin {
             input.select();
             document.execCommand('copy');
         });
+    }
+    
+    async testOracCoreConnection() {
+        const statusDiv = document.getElementById('oracCoreStatus');
+        const testBtn = document.querySelector('.test-btn');
+        
+        // Show loading state
+        statusDiv.innerHTML = '<span class="status-loading">Testing connection...</span>';
+        testBtn.disabled = true;
+        testBtn.textContent = 'TESTING...';
+        
+        try {
+            const response = await fetch('/admin/config/orac-core/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                statusDiv.innerHTML = `<span class="status-success">✓ ${result.message}</span>`;
+            } else {
+                statusDiv.innerHTML = `<span class="status-error">✗ ${result.message}</span>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `<span class="status-error">✗ Connection test failed: ${error.message}</span>`;
+        } finally {
+            testBtn.disabled = false;
+            testBtn.textContent = 'TEST';
+        }
+    }
+    
+    async saveOracCoreConfig() {
+        const urlInput = document.getElementById('oracCoreUrl');
+        const statusDiv = document.getElementById('oracCoreStatus');
+        const saveBtn = document.querySelector('.save-btn');
+        
+        const url = urlInput.value.trim();
+        if (!url) {
+            statusDiv.innerHTML = '<span class="status-error">✗ Please enter a URL</span>';
+            return;
+        }
+        
+        // Show loading state
+        statusDiv.innerHTML = '<span class="status-loading">Saving configuration...</span>';
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'SAVING...';
+        
+        try {
+            const response = await fetch('/admin/config/orac-core', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url: url,
+                    timeout: 30
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                statusDiv.innerHTML = `<span class="status-success">✓ ${result.message}</span>`;
+            } else if (result.status === 'warning') {
+                statusDiv.innerHTML = `<span class="status-warning">⚠ ${result.message}</span>`;
+            } else {
+                statusDiv.innerHTML = `<span class="status-error">✗ ${result.message}</span>`;
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `<span class="status-error">✗ Failed to save configuration: ${error.message}</span>`;
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'SAVE CONFIG';
+        }
     }
 }
 

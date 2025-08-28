@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 from ..config.loader import load_config
 from ..models.unified_loader import UnifiedWhisperLoader
@@ -31,6 +31,18 @@ class ModelInfo(BaseModel):
 class ModelSelectRequest(BaseModel):
     """Model selection request."""
     model_name: str
+
+
+class ORACCoreConfig(BaseModel):
+    """ORAC Core configuration."""
+    url: str
+    timeout: int = 30
+
+
+class ORACCoreConfigRequest(BaseModel):
+    """ORAC Core configuration request."""
+    url: str
+    timeout: Optional[int] = 30
 
 
 # Model descriptions and sizes
@@ -152,6 +164,109 @@ async def get_command_audio(command_id: str):
         media_type="audio/wav",
         filename=f"command_{command_id}.wav"
     )
+
+
+@router.get("/config/orac-core", response_model=ORACCoreConfig)
+async def get_orac_core_config() -> ORACCoreConfig:
+    """Get current ORAC Core configuration."""
+    try:
+        # Import here to avoid circular dependencies
+        from ..integrations.orac_core_client import get_orac_core_client
+        
+        client = get_orac_core_client()
+        return ORACCoreConfig(
+            url=client.base_url,
+            timeout=int(client.timeout.total) if client.timeout else 30
+        )
+    except Exception as e:
+        logger.error(f"Failed to get ORAC Core config: {e}")
+        # Return default config if unable to get current
+        return ORACCoreConfig(url="http://192.168.8.191:8000", timeout=30)
+
+
+@router.post("/config/orac-core")
+async def set_orac_core_config(config: ORACCoreConfigRequest) -> Dict[str, Any]:
+    """Set ORAC Core configuration and test connection."""
+    try:
+        # Import here to avoid circular dependencies
+        from ..integrations.orac_core_client import update_orac_core_client
+        import aiohttp
+        
+        # Validate URL format
+        url = config.url.rstrip('/')
+        if not url.startswith(('http://', 'https://')):
+            raise HTTPException(status_code=400, detail="URL must start with http:// or https://")
+        
+        # Test connection to the new URL
+        timeout = aiohttp.ClientTimeout(total=5)  # Quick test timeout
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            try:
+                async with session.get(f"{url}/v1/status") as response:
+                    if response.status != 200:
+                        logger.warning(f"ORAC Core health check returned {response.status}")
+                        return {
+                            "status": "warning",
+                            "message": f"Configuration saved but ORAC Core returned status {response.status}",
+                            "url": url,
+                            "timeout": config.timeout
+                        }
+            except aiohttp.ClientError as e:
+                logger.warning(f"ORAC Core connection test failed: {e}")
+                return {
+                    "status": "warning", 
+                    "message": f"Configuration saved but connection test failed: {str(e)}",
+                    "url": url,
+                    "timeout": config.timeout
+                }
+        
+        # Update the client configuration
+        update_orac_core_client(url, config.timeout or 30)
+        
+        logger.info(f"Updated ORAC Core config: url={url}, timeout={config.timeout}")
+        
+        return {
+            "status": "success",
+            "message": "ORAC Core configuration updated successfully",
+            "url": url,
+            "timeout": config.timeout
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to set ORAC Core config: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update configuration: {str(e)}")
+
+
+@router.post("/config/orac-core/test")
+async def test_orac_core_connection() -> Dict[str, Any]:
+    """Test connection to currently configured ORAC Core."""
+    try:
+        from ..integrations.orac_core_client import get_orac_core_client
+        
+        client = get_orac_core_client()
+        is_healthy = await client.check_health()
+        
+        if is_healthy:
+            return {
+                "status": "success",
+                "message": "ORAC Core connection successful",
+                "url": client.base_url
+            }
+        else:
+            return {
+                "status": "error", 
+                "message": "ORAC Core is not responding or unhealthy",
+                "url": client.base_url
+            }
+            
+    except Exception as e:
+        logger.error(f"ORAC Core connection test failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Connection test failed: {str(e)}",
+            "url": "unknown"
+        }
 
 
 @router.websocket("/ws")

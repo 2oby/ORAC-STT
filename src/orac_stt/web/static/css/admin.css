@@ -531,3 +531,109 @@ body {
         opacity: 1;
     }
 }
+
+/* Configuration sections */
+.config-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.config-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 15px;
+}
+
+.config-section h4 {
+    color: #00ff41;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin: 0 0 8px 0;
+    letter-spacing: 1px;
+}
+
+.config-section p {
+    color: #888888;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin: 0 0 15px 0;
+    line-height: 1.4;
+}
+
+/* ORAC Core config specific styles */
+.orac-core-config {
+    margin-top: 15px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.config-input {
+    flex: 1;
+    background: #000000;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.config-input:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+.test-btn, .save-btn {
+    background: #000000;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    padding: 10px 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.test-btn:hover, .save-btn:hover {
+    background: #00ff41;
+    color: #000000;
+}
+
+.test-btn:disabled, .save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.save-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.config-status {
+    min-height: 20px;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.status-loading {
+    color: #ffa500;
+}
+
+.status-success {
+    color: #00ff41;
+}
+
+.status-error {
+    color: #ff4444;
+}
+
+.status-warning {
+    color: #ffa500;
+}
