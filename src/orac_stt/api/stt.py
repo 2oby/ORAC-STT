@@ -20,6 +20,7 @@ from ..audio.validator import AudioValidationError
 from ..models.unified_loader import UnifiedWhisperLoader
 from ..utils.logging import get_logger
 from ..history.command_buffer import CommandBuffer
+from ..integrations.orac_core_client import ORACCoreClient
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -29,6 +30,9 @@ _model_loader: Optional[UnifiedWhisperLoader] = None
 
 # Global command buffer instance
 _command_buffer: Optional[CommandBuffer] = None
+
+# Global ORAC Core client instance
+_core_client: Optional[ORACCoreClient] = None
 
 # Debug recording settings
 DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
@@ -71,6 +75,20 @@ def get_command_buffer() -> CommandBuffer:
         logger.info("Initialized command buffer")
     
     return _command_buffer
+
+
+def get_core_client() -> ORACCoreClient:
+    """Get or create ORAC Core client instance."""
+    global _core_client
+    
+    if _core_client is None:
+        settings = load_config()
+        # Use ORAC Core URL from config or default
+        core_url = getattr(settings, 'orac_core_url', 'http://192.168.8.191:8000')
+        _core_client = ORACCoreClient(base_url=core_url)
+        logger.info(f"Initialized ORAC Core client: {core_url}")
+    
+    return _core_client
 
 
 def init_debug_recordings():
@@ -155,26 +173,66 @@ async def transcribe_audio(
     return result
 
 
-@router.post("/stream", response_model=TranscriptionResponse)
-async def transcribe_stream(
+@router.post("/stream/{topic}", response_model=TranscriptionResponse)
+async def transcribe_stream_with_topic(
+    topic: str,
     file: UploadFile = File(..., description="Audio file to transcribe"),
     language: Optional[str] = None,
-    task: str = "transcribe"
+    task: str = "transcribe",
+    forward_to_core: bool = True
 ) -> TranscriptionResponse:
-    """Transcribe audio from uploaded file.
+    """Transcribe audio from uploaded file with topic support.
     
-    This endpoint accepts audio files and returns transcribed text.
-    Supported formats: WAV (16kHz, 16-bit, mono)
-    Maximum duration: 15 seconds
+    This endpoint accepts audio files, transcribes them, and optionally
+    forwards the transcription to ORAC Core with the specified topic.
     
     Args:
+        topic: Topic ID for ORAC Core routing
         file: Audio file upload
         language: Optional language code
         task: Task type (transcribe or translate)
+        forward_to_core: Whether to forward transcription to ORAC Core
         
     Returns:
         Transcription response with text and metadata
     """
+    return await _transcribe_impl(
+        file=file,
+        language=language,
+        task=task,
+        topic=topic,
+        forward_to_core=forward_to_core
+    )
+
+
+@router.post("/stream", response_model=TranscriptionResponse)
+async def transcribe_stream(
+    file: UploadFile = File(..., description="Audio file to transcribe"),
+    language: Optional[str] = None,
+    task: str = "transcribe",
+    forward_to_core: bool = True
+) -> TranscriptionResponse:
+    """Transcribe audio from uploaded file (backward compatibility).
+    
+    Defaults to 'general' topic for backward compatibility.
+    """
+    return await _transcribe_impl(
+        file=file,
+        language=language,
+        task=task,
+        topic="general",
+        forward_to_core=forward_to_core
+    )
+
+
+async def _transcribe_impl(
+    file: UploadFile,
+    language: Optional[str] = None,
+    task: str = "transcribe",
+    topic: str = "general",
+    forward_to_core: bool = True
+) -> TranscriptionResponse:
+    """Internal implementation of transcription with topic support."""
     start_time = time.time()
     
     try:
@@ -239,6 +297,29 @@ async def transcribe_stream(
             processing_time=processing_time,
             language=detected_language
         )
+        
+        # Forward to ORAC Core if enabled and text is not empty
+        if forward_to_core and text.strip():
+            core_client = get_core_client()
+            
+            # Prepare metadata for Core
+            metadata = {
+                "confidence": confidence,
+                "language": detected_language,
+                "duration": duration,
+                "processing_time": processing_time
+            }
+            
+            # Forward asynchronously (don't wait for response)
+            asyncio.create_task(
+                core_client.forward_transcription(
+                    text=text,
+                    topic=topic,
+                    metadata=metadata
+                )
+            )
+            
+            logger.info(f"Forwarded transcription to ORAC Core with topic '{topic}'")
         
         return TranscriptionResponse(
             text=text,
