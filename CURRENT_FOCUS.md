@@ -67,6 +67,8 @@ Validate and optimize whisper.cpp models:
 
 ### 2. **ORAC Core Integration** 
 Implement upstream command processing:
+- **ORAC Core URL Configuration** - Add settings UI in ORAC STT to configure ORAC Core endpoint URL
+- **Topic-based routing** - Accept and forward topic parameters from Hey ORAC through to ORAC Core
 - **Free text parsing API** - Send transcribed text to ORAC Core for command interpretation
 - **Command validation** - Handle structured commands vs natural language
 - **Response handling** - Process ORAC Core responses and status updates
