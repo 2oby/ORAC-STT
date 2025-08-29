@@ -861,7 +861,7 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .topic-card.refreshing {
-    animation: topicPulse 2s cubic-bezier(0.4, 0, 0.6, 1);
+    animation: topicPulse 1s cubic-bezier(0.4, 0, 0.6, 1);
     z-index: 10;  /* Ensure glowing card appears above others */
 }
 
