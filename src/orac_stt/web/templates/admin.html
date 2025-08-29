@@ -39,6 +39,13 @@
             </div>
         </div>
 
+        <!-- Topic Cards -->
+        <div class="topics-section" id="topicsSection">
+            <div class="topics-container" id="topicsContainer">
+                <!-- Topic cards will be dynamically inserted here -->
+            </div>
+        </div>
+
         <!-- Commands Grid -->
         <div id="commandsContainer">
             <div class="commands-grid" id="commandsGrid">
@@ -71,6 +78,48 @@
             </div>
         </div>
     </template>
+    
+    <!-- Topic Card Template -->
+    <template id="topicCardTemplate">
+        <div class="topic-card" data-topic="">
+            <button class="topic-settings-btn" title="Settings">⚙</button>
+            <div class="topic-status-dot"></div>
+            <div class="topic-name"></div>
+            <div class="topic-activity"></div>
+        </div>
+    </template>
+    
+    <!-- Topic Settings Modal -->
+    <div id="topicSettingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Topic Settings</h3>
+                <button class="modal-close" onclick="window.oracAdmin.closeTopicSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Topic Name:</label>
+                    <input type="text" id="topicNameField" readonly class="form-input readonly">
+                </div>
+                <div class="form-group">
+                    <label>ORAC Core URL Override:</label>
+                    <input type="text" id="topicCoreUrlField" class="form-input" 
+                           placeholder="Leave empty to use default">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="useDefaultCheckbox" checked>
+                        Use Default Core URL
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-test" onclick="window.oracAdmin.testTopicConnection()">Test Connection</button>
+                <button class="btn btn-save" onclick="window.oracAdmin.saveTopicSettings()">Save</button>
+                <button class="btn btn-cancel" onclick="window.oracAdmin.closeTopicSettings()">Cancel</button>
+            </div>
+        </div>
+    </div>
     
     <!-- Scrollbar indicator -->
     <div class="scrollbar-track">

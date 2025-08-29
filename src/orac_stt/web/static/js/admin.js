@@ -7,6 +7,9 @@ class OracSTTAdmin {
         this.commands = new Map();
         this.maxCommands = 100; // Increased to show more commands
         this.cleanupInterval = null;
+        this.topics = new Map();
+        this.topicRefreshInterval = null;
+        this.currentTopicForSettings = null;
         
         // DOM elements
         this.connectionStatus = document.getElementById('connectionStatus');
@@ -16,6 +19,9 @@ class OracSTTAdmin {
         this.commandsGrid = document.getElementById('commandsGrid');
         this.emptyState = document.getElementById('emptyState');
         this.commandTileTemplate = document.getElementById('commandTileTemplate');
+        this.topicsContainer = document.getElementById('topicsContainer');
+        this.topicCardTemplate = document.getElementById('topicCardTemplate');
+        this.topicSettingsModal = document.getElementById('topicSettingsModal');
         
         // Initialize
         this.init();
@@ -34,6 +40,7 @@ class OracSTTAdmin {
         // Load initial data
         await this.loadModels();
         await this.loadRecentCommands();
+        await this.loadTopics();
         
         // Set up WebSocket connection
         this.connectWebSocket();
@@ -43,6 +50,9 @@ class OracSTTAdmin {
         
         // Start cleanup interval for old commands
         this.startCleanupInterval();
+        
+        // Start topic refresh interval
+        this.startTopicRefreshInterval();
     }
     
     setupScrollbar() {
@@ -667,6 +677,186 @@ class OracSTTAdmin {
             saveBtn.disabled = false;
             saveBtn.textContent = 'SAVE CONFIG';
         }
+    }
+    
+    // Topic Management Methods
+    async loadTopics() {
+        try {
+            const response = await fetch('/admin/topics');
+            if (!response.ok) throw new Error('Failed to load topics');
+            
+            const topics = await response.json();
+            this.renderTopics(topics);
+        } catch (error) {
+            console.error('Error loading topics:', error);
+        }
+    }
+    
+    renderTopics(topics) {
+        // Clear existing topics
+        this.topicsContainer.innerHTML = '';
+        this.topics.clear();
+        
+        if (!topics || topics.length === 0) {
+            return;
+        }
+        
+        // Sort topics by activity (active first)
+        topics.sort((a, b) => {
+            if (a.is_active && !b.is_active) return -1;
+            if (!a.is_active && b.is_active) return 1;
+            return 0;
+        });
+        
+        // Create topic cards
+        topics.forEach(topic => {
+            this.topics.set(topic.name, topic);
+            const card = this.createTopicCard(topic);
+            this.topicsContainer.appendChild(card);
+        });
+    }
+    
+    createTopicCard(topic) {
+        const template = this.topicCardTemplate.content.cloneNode(true);
+        const card = template.querySelector('.topic-card');
+        
+        card.dataset.topic = topic.name;
+        
+        // Set status (active or dormant)
+        if (!topic.is_active) {
+            card.classList.add('dormant');
+        }
+        
+        // Set topic name
+        const nameEl = card.querySelector('.topic-name');
+        nameEl.textContent = topic.name;
+        
+        // Set activity info
+        const activityEl = card.querySelector('.topic-activity');
+        if (topic.last_seen) {
+            const lastSeen = new Date(topic.last_seen);
+            const now = new Date();
+            const diffMs = now - lastSeen;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) {
+                activityEl.textContent = 'Just now';
+            } else if (diffMins < 60) {
+                activityEl.textContent = `${diffMins}m ago`;
+            } else {
+                const diffHours = Math.floor(diffMins / 60);
+                activityEl.textContent = `${diffHours}h ago`;
+            }
+        } else {
+            activityEl.textContent = 'Never';
+        }
+        
+        // Set up settings button
+        const settingsBtn = card.querySelector('.topic-settings-btn');
+        settingsBtn.addEventListener('click', () => {
+            this.openTopicSettings(topic.name);
+        });
+        
+        return card;
+    }
+    
+    openTopicSettings(topicName) {
+        const topic = this.topics.get(topicName);
+        if (!topic) return;
+        
+        this.currentTopicForSettings = topicName;
+        
+        // Populate modal fields
+        document.getElementById('topicNameField').value = topicName;
+        const coreUrlField = document.getElementById('topicCoreUrlField');
+        const useDefaultCheckbox = document.getElementById('useDefaultCheckbox');
+        
+        if (topic.orac_core_url) {
+            coreUrlField.value = topic.orac_core_url;
+            useDefaultCheckbox.checked = false;
+            coreUrlField.disabled = false;
+        } else {
+            coreUrlField.value = '';
+            useDefaultCheckbox.checked = true;
+            coreUrlField.disabled = true;
+        }
+        
+        // Set up checkbox listener
+        useDefaultCheckbox.onchange = (e) => {
+            coreUrlField.disabled = e.target.checked;
+            if (e.target.checked) {
+                coreUrlField.value = '';
+            }
+        };
+        
+        // Show modal
+        this.topicSettingsModal.style.display = 'block';
+    }
+    
+    closeTopicSettings() {
+        this.topicSettingsModal.style.display = 'none';
+        this.currentTopicForSettings = null;
+    }
+    
+    async saveTopicSettings() {
+        if (!this.currentTopicForSettings) return;
+        
+        const coreUrlField = document.getElementById('topicCoreUrlField');
+        const useDefaultCheckbox = document.getElementById('useDefaultCheckbox');
+        
+        const coreUrl = useDefaultCheckbox.checked ? null : coreUrlField.value.trim() || null;
+        
+        try {
+            const response = await fetch(`/admin/topics/${this.currentTopicForSettings}/config`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orac_core_url: coreUrl
+                })
+            });
+            
+            if (!response.ok) throw new Error('Failed to save topic settings');
+            
+            // Reload topics to reflect changes
+            await this.loadTopics();
+            
+            // Close modal
+            this.closeTopicSettings();
+        } catch (error) {
+            console.error('Error saving topic settings:', error);
+            alert('Failed to save topic settings: ' + error.message);
+        }
+    }
+    
+    async testTopicConnection() {
+        const coreUrlField = document.getElementById('topicCoreUrlField');
+        const url = coreUrlField.value.trim();
+        
+        if (!url) {
+            alert('Please enter a Core URL to test');
+            return;
+        }
+        
+        try {
+            // Simple connectivity test
+            const response = await fetch(url + '/health', {
+                method: 'GET',
+                mode: 'no-cors' // Allow testing without CORS issues
+            });
+            
+            alert('Connection test initiated. Check the Core URL logs for confirmation.');
+        } catch (error) {
+            alert('Connection test failed: ' + error.message);
+        }
+    }
+    
+    startTopicRefreshInterval() {
+        // Refresh topics every 10 seconds
+        this.topicRefreshInterval = setInterval(() => {
+            this.loadTopics();
+        }, 10000);
     }
 }
 

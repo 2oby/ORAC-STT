@@ -15,6 +15,7 @@ from ..models.heartbeat import (
 from ..utils.logging import get_logger
 from ..integrations.orac_core_client import ORACCoreClient
 from ..config.loader import load_config
+from .topic_registry import TopicRegistry
 
 logger = get_logger(__name__)
 
@@ -22,11 +23,12 @@ logger = get_logger(__name__)
 class HeartbeatManager:
     """Manages heartbeat tracking and forwarding to ORAC Core."""
     
-    def __init__(self, ttl_seconds: int = 120):
+    def __init__(self, ttl_seconds: int = 120, data_dir: str = "/app/data"):
         """Initialize heartbeat manager.
         
         Args:
             ttl_seconds: Time-to-live for heartbeat data (default 120s for 60s idle interval)
+            data_dir: Directory for persisting topic data
         """
         self.ttl_seconds = ttl_seconds
         self._heartbeats: Dict[str, Dict] = {}  # instance_id -> heartbeat data
@@ -35,6 +37,7 @@ class HeartbeatManager:
         self._forward_lock = asyncio.Lock()
         self._last_forward_time = datetime.min
         self._forward_interval = timedelta(seconds=5)  # Batch forwards every 5s
+        self._topic_registry = TopicRegistry(data_dir=data_dir)
         
     def _get_core_client(self) -> Optional[ORACCoreClient]:
         """Get or create ORAC Core client."""
@@ -66,6 +69,16 @@ class HeartbeatManager:
                 "models": request.models,
                 "received_at": datetime.utcnow()
             }
+            
+            # Auto-register topics from heartbeat
+            for model in request.models:
+                metadata = {
+                    "wake_word": model.wake_word,
+                    "trigger_count": model.trigger_count,
+                    "last_triggered": model.last_triggered.isoformat() if model.last_triggered else None,
+                    "status": model.status
+                }
+                self._topic_registry.auto_register(model.topic, metadata)
             
             # Filter active models
             active_models = [m for m in request.models if m.status == "active"]
@@ -99,16 +112,12 @@ class HeartbeatManager:
         return (now - self._last_forward_time) >= self._forward_interval
     
     async def _forward_to_core(self):
-        """Forward active topics to ORAC Core."""
+        """Forward active topics to ORAC Core with per-topic routing."""
         async with self._forward_lock:
             try:
-                core_client = self._get_core_client()
-                if not core_client:
-                    logger.debug("ORAC Core not configured, skipping heartbeat forward")
-                    return
-                
                 # Collect all active topics from all instances
                 all_topics = []
+                topic_names = []
                 stale_instances = []
                 now = datetime.utcnow()
                 
@@ -129,6 +138,7 @@ class HeartbeatManager:
                                 trigger_count=model.trigger_count,
                                 wake_word=model.wake_word
                             ))
+                            topic_names.append(model.topic)
                 
                 # Clean up stale instances
                 for instance_id in stale_instances:
@@ -139,23 +149,52 @@ class HeartbeatManager:
                     logger.debug("No active topics to forward")
                     return
                 
-                # Create batched request
-                core_request = CoreHeartbeatRequest(
-                    source="orac_stt",
-                    upstream_source="hey_orac",
-                    instance_id=self._instance_id,
-                    timestamp=datetime.utcnow(),
-                    topics=all_topics
-                )
+                # Group topics by Core URL
+                grouped_topics = self._topic_registry.group_by_core_url(topic_names)
                 
-                # Forward to Core
-                await core_client.forward_heartbeat(core_request)
+                # Forward to each Core instance
+                for core_url, topics_for_core in grouped_topics.items():
+                    # Filter topics for this Core
+                    topics_to_send = [t for t in all_topics if t.name in topics_for_core]
+                    
+                    # Get or create client for this Core URL
+                    if core_url is None:
+                        # Use default Core client
+                        core_client = self._get_core_client()
+                        if not core_client:
+                            logger.debug("Default ORAC Core not configured, skipping these topics")
+                            continue
+                    else:
+                        # Create client for override URL
+                        core_client = ORACCoreClient(base_url=core_url)
+                    
+                    # Create batched request
+                    core_request = CoreHeartbeatRequest(
+                        source="orac_stt",
+                        upstream_source="hey_orac",
+                        instance_id=self._instance_id,
+                        timestamp=datetime.utcnow(),
+                        topics=topics_to_send
+                    )
+                    
+                    # Forward to Core
+                    await core_client.forward_heartbeat(core_request)
+                    
+                    core_desc = core_url or "default"
+                    logger.info(f"Forwarded {len(topics_to_send)} topics to ORAC Core ({core_desc})")
+                
                 self._last_forward_time = datetime.utcnow()
-                
-                logger.info(f"Forwarded {len(all_topics)} topics to ORAC Core")
                 
             except Exception as e:
                 logger.error(f"Failed to forward heartbeat to Core: {e}")
+    
+    def get_topic_registry(self) -> TopicRegistry:
+        """Get the topic registry instance.
+        
+        Returns:
+            TopicRegistry instance
+        """
+        return self._topic_registry
     
     def get_status(self) -> Dict:
         """Get current heartbeat status.
@@ -168,7 +207,8 @@ class HeartbeatManager:
             "instance_count": len(self._heartbeats),
             "instances": [],
             "total_active_topics": 0,
-            "total_inactive_topics": 0
+            "total_inactive_topics": 0,
+            "registered_topics": len(self._topic_registry.get_all_topics())
         }
         
         for instance_id, data in self._heartbeats.items():
