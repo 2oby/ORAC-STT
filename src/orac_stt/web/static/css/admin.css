@@ -154,10 +154,14 @@ body {
 
 /* Topic Cards Section */
 .topics-section {
-    margin-top: 180px;
-    padding: 0 20px;
-    min-height: 100px;
-    margin-bottom: 20px;
+    position: fixed;
+    top: 160px;  /* Position below control panel */
+    left: 0;
+    right: 0;
+    background: #000000;  /* Solid background */
+    padding: 10px 20px;
+    z-index: 50;  /* Above content but below header */
+    border-bottom: 1px solid #00ff41;
 }
 
 .topics-header {
@@ -420,10 +424,10 @@ body {
 
 /* Commands Container */
 #commandsContainer {
-    margin-top: 20px;
+    margin-top: 320px;  /* Account for fixed header + control panel + topics */
     padding: 20px;
-    padding-right: 40px;
-    min-height: calc(100vh - 300px);
+    padding-right: 60px;  /* More padding to avoid custom scrollbar */
+    min-height: calc(100vh - 320px);
 }
 
 /* Commands Grid */
@@ -529,23 +533,13 @@ body {
     margin-bottom: 10px;
 }
 
-/* Scrollbar */
+/* Scrollbar - Disabled to use browser native scrollbar */
 .scrollbar-track {
-    position: fixed;
-    right: 10px;
-    top: 150px;
-    bottom: 20px;
-    width: 4px;
-    background: rgba(0, 255, 65, 0.1);
-    display: none;
+    display: none !important;  /* Force hide custom scrollbar */
 }
 
 .scrollbar-thumb {
-    position: absolute;
-    width: 100%;
-    background: #00ff41;
-    min-height: 30px;
-    transition: opacity 0.3s;
+    display: none !important;  /* Force hide custom scrollbar */
 }
 
 /* Responsive */
