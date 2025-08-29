@@ -711,8 +711,11 @@ class OracSTTAdmin {
         
         if (!topics || topics.length === 0) {
             console.log('No topics to display');
-            this.topicsContainer.innerHTML = '';
-            this.topics.clear();
+            // Only clear if there are currently cards shown
+            if (this.topicsContainer.children.length > 0) {
+                this.topicsContainer.innerHTML = '';
+                this.topics.clear();
+            }
             return;
         }
         
@@ -727,41 +730,85 @@ class OracSTTAdmin {
         
         // Track which topics we've seen
         const seenTopics = new Set();
+        const existingCards = new Map();
+        
+        // Build a map of existing cards
+        document.querySelectorAll('.topic-card').forEach(card => {
+            existingCards.set(card.dataset.topicName, card);
+        });
         
         // Update existing cards or create new ones
-        topics.forEach(topic => {
+        topics.forEach((topic, index) => {
             seenTopics.add(topic.name);
-            const existingCard = document.querySelector(`[data-topic-name="${topic.name}"]`);
+            const existingCard = existingCards.get(topic.name);
             
             if (existingCard) {
-                // Update existing card
+                // Update existing card without removing it
                 this.updateTopicCard(existingCard, topic);
-                // Add pulse animation with proper cleanup
-                if (!existingCard.classList.contains('refreshing')) {
+                
+                // Only add animation if data actually changed
+                const prevData = this.topics.get(topic.name);
+                const dataChanged = !prevData || 
+                    prevData.is_active !== topic.is_active ||
+                    prevData.last_seen !== topic.last_seen;
+                
+                if (dataChanged && !existingCard.classList.contains('refreshing')) {
                     existingCard.classList.add('refreshing');
                     // Remove class after animation completes (2s duration)
-                    setTimeout(() => {
+                    existingCard.dataset.animationTimeout = setTimeout(() => {
                         existingCard.classList.remove('refreshing');
+                        delete existingCard.dataset.animationTimeout;
                     }, 2000);
+                }
+                
+                // Ensure card is in correct position
+                const currentIndex = Array.from(this.topicsContainer.children).indexOf(existingCard);
+                if (currentIndex !== index) {
+                    // Move card to correct position
+                    const referenceNode = this.topicsContainer.children[index];
+                    if (referenceNode && referenceNode !== existingCard) {
+                        this.topicsContainer.insertBefore(existingCard, referenceNode);
+                    } else if (index >= this.topicsContainer.children.length) {
+                        this.topicsContainer.appendChild(existingCard);
+                    }
                 }
             } else {
                 // Create new card
                 const card = this.createTopicCard(topic);
-                this.topicsContainer.appendChild(card);
+                card.classList.add('new');
+                
+                // Insert at correct position
+                if (index < this.topicsContainer.children.length) {
+                    this.topicsContainer.insertBefore(card, this.topicsContainer.children[index]);
+                } else {
+                    this.topicsContainer.appendChild(card);
+                }
+                
+                // Remove 'new' class after animation
+                setTimeout(() => {
+                    card.classList.remove('new');
+                }, 300);
             }
             
             this.topics.set(topic.name, topic);
         });
         
         // Remove cards for topics that no longer exist
-        document.querySelectorAll('.topic-card').forEach(card => {
-            const topicName = card.dataset.topicName;
+        existingCards.forEach((card, topicName) => {
             if (!seenTopics.has(topicName)) {
-                card.style.animation = 'fadeOut 0.5s ease-out';
+                // Clear any pending animation timeout
+                if (card.dataset.animationTimeout) {
+                    clearTimeout(parseInt(card.dataset.animationTimeout));
+                }
+                
+                card.style.animation = 'fadeOut 0.3s ease-out';
+                card.style.pointerEvents = 'none';
                 setTimeout(() => {
-                    card.remove();
+                    if (card.parentNode) {
+                        card.remove();
+                    }
                     this.topics.delete(topicName);
-                }, 500);
+                }, 300);
             }
         });
     }
@@ -843,8 +890,15 @@ class OracSTTAdmin {
             return document.createElement('div');
         }
         
+        // Clone the template content
         const template = this.topicCardTemplate.content.cloneNode(true);
-        const card = template.querySelector('.topic-card');
+        
+        // Create a temporary container to hold the cloned content
+        const tempDiv = document.createElement('div');
+        tempDiv.appendChild(template);
+        
+        // Get the actual card element
+        const card = tempDiv.querySelector('.topic-card');
         
         card.dataset.topicName = topic.name;
         
