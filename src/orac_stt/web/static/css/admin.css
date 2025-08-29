@@ -222,9 +222,9 @@ body {
     flex-direction: column;
     justify-content: space-between;
     opacity: 1;
-    transition: all 0.3s ease, box-shadow 0.5s ease, opacity 0.3s ease;
-    box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
-                inset 0 0 5px rgba(0, 255, 65, 0.1);
+    transition: all 0.3s ease, box-shadow 0.8s ease, opacity 0.3s ease;
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.15),
+                inset 0 0 5px rgba(0, 255, 65, 0.05);
 }
 
 .topic-card.new {
@@ -827,41 +827,41 @@ body::-webkit-scrollbar-thumb:hover {
 
 @keyframes topicPulse {
     0% {
-        box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
-                    inset 0 0 5px rgba(0, 255, 65, 0.1);
+        box-shadow: 0 0 5px rgba(0, 255, 65, 0.15),
+                    inset 0 0 5px rgba(0, 255, 65, 0.05);
         transform: scale(1);
     }
     25% {
-        box-shadow: 0 0 15px rgba(0, 255, 65, 0.5),
-                    0 0 25px rgba(0, 255, 65, 0.3),
-                    inset 0 0 10px rgba(0, 255, 65, 0.2);
-        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.25),
+                    0 0 15px rgba(0, 255, 65, 0.15),
+                    inset 0 0 8px rgba(0, 255, 65, 0.1);
+        transform: scale(1.01);
     }
     50% {
-        box-shadow: 0 0 25px rgba(0, 255, 65, 0.7),
-                    0 0 35px rgba(0, 255, 65, 0.4),
-                    inset 0 0 15px rgba(0, 255, 65, 0.25);
-        transform: scale(1.03);
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.35),
+                    0 0 20px rgba(0, 255, 65, 0.2),
+                    inset 0 0 10px rgba(0, 255, 65, 0.12);
+        transform: scale(1.015);
         background: linear-gradient(135deg, 
-                    rgba(0, 255, 65, 0.08) 0%, 
+                    rgba(0, 255, 65, 0.03) 0%, 
                     rgba(26, 26, 26, 1) 50%,
-                    rgba(0, 255, 65, 0.04) 100%);
+                    rgba(0, 255, 65, 0.02) 100%);
     }
     75% {
-        box-shadow: 0 0 15px rgba(0, 255, 65, 0.5),
-                    0 0 25px rgba(0, 255, 65, 0.3),
-                    inset 0 0 10px rgba(0, 255, 65, 0.2);
-        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.25),
+                    0 0 15px rgba(0, 255, 65, 0.15),
+                    inset 0 0 8px rgba(0, 255, 65, 0.1);
+        transform: scale(1.01);
     }
     100% {
-        box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
-                    inset 0 0 5px rgba(0, 255, 65, 0.1);
+        box-shadow: 0 0 5px rgba(0, 255, 65, 0.15),
+                    inset 0 0 5px rgba(0, 255, 65, 0.05);
         transform: scale(1);
     }
 }
 
 .topic-card.refreshing {
-    animation: topicPulse 1s cubic-bezier(0.4, 0, 0.6, 1);
+    animation: topicPulse 1.5s cubic-bezier(0.25, 0.1, 0.25, 1);
     z-index: 10;  /* Ensure glowing card appears above others */
 }
 

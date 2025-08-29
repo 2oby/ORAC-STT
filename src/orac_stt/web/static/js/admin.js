@@ -754,11 +754,11 @@ class OracSTTAdmin {
                 
                 if (dataChanged && !existingCard.classList.contains('refreshing')) {
                     existingCard.classList.add('refreshing');
-                    // Remove class after animation completes (1s duration)
+                    // Remove class after animation completes (1.5s duration)
                     existingCard.dataset.animationTimeout = setTimeout(() => {
                         existingCard.classList.remove('refreshing');
                         delete existingCard.dataset.animationTimeout;
-                    }, 1000);
+                    }, 1500);
                 }
                 
                 // Ensure card is in correct position
