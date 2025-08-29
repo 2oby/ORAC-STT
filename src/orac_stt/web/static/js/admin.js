@@ -822,6 +822,40 @@ class OracSTTAdmin {
         this.currentTopicForSettings = null;
     }
     
+    async deleteTopic() {
+        if (!this.currentTopicForSettings) return;
+        
+        const topicName = this.currentTopicForSettings.name;
+        
+        // Confirm deletion
+        if (!confirm(`Are you sure you want to delete the topic "${topicName}"?\n\nThis action cannot be undone.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/admin/topics/${encodeURIComponent(topicName)}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to delete topic');
+            }
+            
+            // Reload topics to reflect changes
+            await this.loadTopics();
+            
+            // Close modal
+            this.closeTopicSettings();
+            
+            // Show success message (optional)
+            console.log(`Topic "${topicName}" deleted successfully`);
+        } catch (error) {
+            console.error('Error deleting topic:', error);
+            alert('Failed to delete topic: ' + error.message);
+        }
+    }
+    
     async saveTopicSettings() {
         if (!this.currentTopicForSettings) return;
         

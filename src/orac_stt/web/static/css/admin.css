@@ -377,7 +377,12 @@ body {
     padding: 15px 20px;
     border-top: 1px solid #00ff41;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-footer-right {
+    display: flex;
     gap: 10px;
 }
 
@@ -416,6 +421,16 @@ body {
 
 .btn-test:hover {
     background: #ff9500;
+    color: #000;
+}
+
+.btn-delete {
+    border-color: #ff0040;
+    color: #ff0040;
+}
+
+.btn-delete:hover {
+    background: #ff0040;
     color: #000;
 }
 

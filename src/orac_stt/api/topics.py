@@ -156,6 +156,49 @@ async def remove_topic_config(topic_name: str):
         )
 
 
+@router.delete("/{topic_name}")
+async def delete_topic(topic_name: str):
+    """Delete a topic completely from the registry.
+    
+    Args:
+        topic_name: Name of the topic to delete
+    
+    Returns:
+        Success status
+    """
+    try:
+        manager = get_heartbeat_manager()
+        registry = manager.get_topic_registry()
+        
+        # Check if topic exists
+        topic = registry.get_topic(topic_name)
+        if not topic:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Topic '{topic_name}' not found"
+            )
+        
+        # Remove the topic
+        success = registry.remove_topic(topic_name)
+        
+        if success:
+            logger.info(f"Deleted topic '{topic_name}'")
+            return {"status": "ok", "message": f"Topic '{topic_name}' deleted successfully"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete topic '{topic_name}'"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete topic {topic_name}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
 @router.get("/active", response_model=List[TopicResponse])
 async def get_active_topics():
     """Get only active topics (recent heartbeats).
