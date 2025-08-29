@@ -154,14 +154,11 @@ body {
 
 /* Topic Cards Section */
 .topics-section {
-    position: fixed;
-    top: 160px;  /* Position below control panel */
-    left: 0;
-    right: 0;
-    background: #000000;  /* Solid background */
+    margin-top: 180px;  /* Below fixed header and control panel */
     padding: 10px 20px;
-    z-index: 50;  /* Above content but below header */
-    border-bottom: 1px solid #00ff41;
+    background: #000000;
+    border-bottom: 2px solid #00ff41;
+    margin-bottom: 20px;
 }
 
 .topics-header {
@@ -424,10 +421,9 @@ body {
 
 /* Commands Container */
 #commandsContainer {
-    margin-top: 320px;  /* Account for fixed header + control panel + topics */
     padding: 20px;
-    padding-right: 60px;  /* More padding to avoid custom scrollbar */
-    min-height: calc(100vh - 320px);
+    padding-right: 40px;  /* Space for scrollbar */
+    min-height: calc(100vh - 380px);
 }
 
 /* Commands Grid */
@@ -533,13 +529,33 @@ body {
     margin-bottom: 10px;
 }
 
-/* Scrollbar - Disabled to use browser native scrollbar */
+/* Custom Green Scrollbar */
+body::-webkit-scrollbar {
+    width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+    background: #000;
+    border-left: 1px solid #00ff41;
+}
+
+body::-webkit-scrollbar-thumb {
+    background: #00ff41;
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+    opacity: 1;
+}
+
+/* Hide the custom scrollbar element (keeping browser scrollbar green) */
 .scrollbar-track {
-    display: none !important;  /* Force hide custom scrollbar */
+    display: none;
 }
 
 .scrollbar-thumb {
-    display: none !important;  /* Force hide custom scrollbar */
+    display: none;
 }
 
 /* Responsive */
