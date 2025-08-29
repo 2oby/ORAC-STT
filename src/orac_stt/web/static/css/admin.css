@@ -178,7 +178,9 @@ body {
     gap: 15px;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 10px 40px 10px 0;  /* Add right padding to avoid scrollbar overlap */
+    overflow-y: visible;  /* Allow vertical overflow for glow effect */
+    padding: 25px 40px 25px 25px;  /* Add padding for glow space */
+    margin: -15px -15px 0 -15px;  /* Compensate for padding to maintain layout */
     scrollbar-width: thin;
     scrollbar-color: #00ff41 #000;
 }
@@ -220,7 +222,9 @@ body {
     flex-direction: column;
     justify-content: space-between;
     animation: fadeIn 0.3s ease-in;
-    transition: all 0.3s ease;
+    transition: all 0.3s ease, box-shadow 0.5s ease;
+    box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
+                inset 0 0 5px rgba(0, 255, 65, 0.1);
 }
 
 .topic-card:hover {
@@ -816,28 +820,40 @@ body::-webkit-scrollbar-thumb:hover {
     0% {
         box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
                     inset 0 0 5px rgba(0, 255, 65, 0.1);
-        border-color: #00ff41;
+        transform: scale(1);
+    }
+    25% {
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.5),
+                    0 0 25px rgba(0, 255, 65, 0.3),
+                    inset 0 0 10px rgba(0, 255, 65, 0.2);
+        transform: scale(1.02);
     }
     50% {
-        box-shadow: 0 0 20px rgba(0, 255, 65, 0.8),
-                    0 0 40px rgba(0, 255, 65, 0.4),
-                    inset 0 0 15px rgba(0, 255, 65, 0.3);
-        border-color: #00ff41;
-        border-width: 2px;
+        box-shadow: 0 0 25px rgba(0, 255, 65, 0.7),
+                    0 0 35px rgba(0, 255, 65, 0.4),
+                    inset 0 0 15px rgba(0, 255, 65, 0.25);
+        transform: scale(1.03);
         background: linear-gradient(135deg, 
-                    rgba(0, 255, 65, 0.1) 0%, 
+                    rgba(0, 255, 65, 0.08) 0%, 
                     rgba(26, 26, 26, 1) 50%,
-                    rgba(0, 255, 65, 0.05) 100%);
+                    rgba(0, 255, 65, 0.04) 100%);
+    }
+    75% {
+        box-shadow: 0 0 15px rgba(0, 255, 65, 0.5),
+                    0 0 25px rgba(0, 255, 65, 0.3),
+                    inset 0 0 10px rgba(0, 255, 65, 0.2);
+        transform: scale(1.02);
     }
     100% {
         box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
                     inset 0 0 5px rgba(0, 255, 65, 0.1);
-        border-color: #00ff41;
+        transform: scale(1);
     }
 }
 
 .topic-card.refreshing {
-    animation: topicPulse 1.5s ease-in-out;
+    animation: topicPulse 2s cubic-bezier(0.4, 0, 0.6, 1);
+    z-index: 10;  /* Ensure glowing card appears above others */
 }
 
 @keyframes slideIn {

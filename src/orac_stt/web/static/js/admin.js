@@ -736,11 +736,14 @@ class OracSTTAdmin {
             if (existingCard) {
                 // Update existing card
                 this.updateTopicCard(existingCard, topic);
-                // Add pulse animation
-                existingCard.classList.add('refreshing');
-                setTimeout(() => {
-                    existingCard.classList.remove('refreshing');
-                }, 1500);
+                // Add pulse animation with proper cleanup
+                if (!existingCard.classList.contains('refreshing')) {
+                    existingCard.classList.add('refreshing');
+                    // Remove class after animation completes (2s duration)
+                    setTimeout(() => {
+                        existingCard.classList.remove('refreshing');
+                    }, 2000);
+                }
             } else {
                 // Create new card
                 const card = this.createTopicCard(topic);
@@ -767,7 +770,13 @@ class OracSTTAdmin {
         // Update status dot
         const statusDot = card.querySelector('.topic-status-dot');
         if (statusDot) {
-            statusDot.className = 'topic-status-dot';
+            // Only update if status changed
+            const wasActive = statusDot.classList.contains('active');
+            const wasDormant = statusDot.classList.contains('dormant');
+            const wasStale = statusDot.classList.contains('stale');
+            
+            statusDot.classList.remove('active', 'dormant', 'stale');
+            
             if (topic.is_active) {
                 statusDot.classList.add('active');
             } else {
@@ -784,8 +793,10 @@ class OracSTTAdmin {
             }
         }
         
-        // Update card classes
-        card.className = 'topic-card';
+        // Update card classes without resetting all classes
+        const isRefreshing = card.classList.contains('refreshing');
+        card.classList.remove('dormant', 'stale');
+        
         if (!topic.is_active) {
             const lastSeen = new Date(topic.last_seen);
             const now = new Date();
@@ -796,6 +807,11 @@ class OracSTTAdmin {
             } else {
                 card.classList.add('dormant');
             }
+        }
+        
+        // Preserve refreshing class if it's still animating
+        if (isRefreshing) {
+            card.classList.add('refreshing');
         }
         
         // Update activity text
