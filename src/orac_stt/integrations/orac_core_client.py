@@ -96,6 +96,47 @@ class ORACCoreClient:
             logger.error(f"Unexpected error forwarding to ORAC Core: {e}", exc_info=True)
             return None
     
+    async def forward_heartbeat(self, heartbeat_request) -> Optional[Dict[str, Any]]:
+        """Forward batched heartbeat to ORAC Core.
+        
+        Args:
+            heartbeat_request: CoreHeartbeatRequest with batched topics
+            
+        Returns:
+            Response from ORAC Core or None if failed
+        """
+        url = f"{self.base_url}/v1/topics/heartbeat"
+        
+        # Convert to dict for JSON serialization
+        payload = heartbeat_request.model_dump(mode='json')
+        
+        logger.info(f"Forwarding heartbeat to ORAC Core: {len(heartbeat_request.topics)} topics")
+        
+        try:
+            session = await self._get_session()
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Successfully forwarded heartbeat to ORAC Core")
+                    return result
+                elif response.status == 404:
+                    logger.debug("ORAC Core heartbeat endpoint not found (may not be implemented yet)")
+                    return None
+                else:
+                    error_text = await response.text()
+                    logger.error(f"ORAC Core heartbeat returned {response.status}: {error_text}")
+                    return None
+                    
+        except aiohttp.ClientTimeout:
+            logger.error("Timeout forwarding heartbeat to ORAC Core")
+            return None
+        except aiohttp.ClientError as e:
+            logger.error(f"Connection error forwarding heartbeat to ORAC Core: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error forwarding heartbeat to ORAC Core: {e}", exc_info=True)
+            return None
+    
     async def check_health(self) -> bool:
         """Check if ORAC Core is healthy.
         

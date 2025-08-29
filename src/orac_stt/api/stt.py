@@ -21,6 +21,8 @@ from ..models.unified_loader import UnifiedWhisperLoader
 from ..utils.logging import get_logger
 from ..history.command_buffer import CommandBuffer
 from ..integrations.orac_core_client import ORACCoreClient
+from ..models.heartbeat import HeartbeatRequest, HeartbeatResponse
+from ..core.heartbeat_manager import get_heartbeat_manager
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -427,3 +429,31 @@ async def get_debug_recording(filename: str):
             "Content-Disposition": f"attachment; filename={filename}"
         }
     )
+
+
+@router.post("/heartbeat", response_model=HeartbeatResponse)
+async def receive_heartbeat(request: HeartbeatRequest) -> HeartbeatResponse:
+    """Receive batched heartbeat from Hey ORAC instances.
+    
+    This endpoint accepts heartbeats containing multiple wake word models
+    from a single Hey ORAC instance. Active models are forwarded to ORAC Core
+    for automatic topic creation and health tracking.
+    
+    Args:
+        request: Batched heartbeat with all models from an instance
+        
+    Returns:
+        Response indicating processing status
+    """
+    heartbeat_manager = get_heartbeat_manager()
+    return await heartbeat_manager.process_heartbeat(request)
+
+
+@router.get("/heartbeat/status")
+async def get_heartbeat_status() -> Dict[str, Any]:
+    """Get current heartbeat tracking status.
+    
+    Returns information about active Hey ORAC instances and their topics.
+    """
+    heartbeat_manager = get_heartbeat_manager()
+    return heartbeat_manager.get_status()
