@@ -182,28 +182,7 @@ Note: Inactive models are filtered out by ORAC STT before forwarding to ORAC Cor
 - Source tracking and health status
 - Manual topic management
 
-### 6. UI Design for Topic Management
-
-#### ORAC STT Admin Dashboard
-- **Topic Cards Layout**: Horizontal row of cards below the top bar
-  - Position: Between "Dashboard Connected/Select Model" bar and main content
-  - Each card: 120px wide, 80px tall, rounded corners
-  - Card content:
-    - Topic name (e.g., "jarvis")
-    - Status dot (green=active, pale orange=dormant)
-    - Last activity time (e.g., "2m ago")
-    - Settings cog icon (top-right corner)
-  - Cards auto-appear when topics discovered via heartbeats
-  - Smooth fade-in animation for new topics
-  
-- **Settings Modal** (on cog click):
-  - Topic name (read-only)
-  - ORAC Core URL override (optional)
-  - "Use Default" checkbox
-  - Test Connection button
-  - Save/Cancel buttons
-
-### 7. Error Handling & Fallbacks
+### 6. Error Handling & Fallbacks
 
 #### Connection Failures
 - Hey ORAC falls back to local processing if ORAC STT unavailable
@@ -215,7 +194,7 @@ Note: Inactive models are filtered out by ORAC STT before forwarding to ORAC Cor
 - User notification of new topics requiring configuration
 - Graceful degradation to general topic if specific topic fails
 
-### 8. Benefits
+### 7. Benefits
 
 #### Automatic Topic Management
 - Topics auto-created when wake words are enabled
@@ -232,7 +211,7 @@ Note: Inactive models are filtered out by ORAC STT before forwarding to ORAC Cor
 - Dynamic ORAC Core target configuration
 - Easy setup and testing workflow
 
-### 9. Implementation Status & Next Steps
+### 8. Implementation Status & Next Steps
 
 #### ✅ Phase 1: COMPLETED (2025-08-28)
 **ORAC STT Admin Interface Update**
@@ -259,49 +238,64 @@ Note: Inactive models are filtered out by ORAC STT before forwarding to ORAC Cor
 - ⚠️ Fixed `deploy_and_test.sh` script to use current Git branch instead of hardcoded master
 - The deployment script now correctly handles feature branches
 
-#### 🔄 Phase 2B: IN PROGRESS
+#### ✅ Phase 2B: COMPLETED (2025-08-29)
 **Topic Management Architecture Changes**
 
-**Core Design Principle: Topics Flow from Wake Words**
-- Topics originate from Hey ORAC wake words
-- Flow through the system via heartbeats (push model)
-- Lazy creation - topics auto-register when first seen
-- No synchronization needed - topics are discovered naturally
-
-**New Requirements Identified:**
-- [ ] **Per-Topic ORAC Core URLs**: Each topic may optionally have its own Core URL
-  - Default: Use global ORAC Core URL
-  - Override: Topic-specific Core URL for specialized routing
-  - Enables distributed processing and domain-specific Core instances
-  - Supports A/B testing and geographic distribution
+**Completed Features:**
+- [x] **Per-Topic ORAC Core URLs**: Each topic can have its own ORAC Core URL configuration
+  - Topics can route to different ORAC Core instances
+  - Enables distributed processing and load balancing
+  - Allows specialized Core instances for different domains
   
-- [ ] **ORAC STT Topic Registry**: Lightweight topic tracking
-  - Auto-populated from heartbeats (lazy registration)
-  - Tracks topic activity status (active/dormant)
-  - Stores optional per-topic Core URL overrides
-  - No sync needed - topics flow from wake words
+- [x] **ORAC STT Topic Registry**: ORAC STT has full topic registry
+  - Lazy registration from heartbeats (auto-create on first seen)
+  - Store per-topic configuration (Core URL, activity tracking)
+  - Enable topic-specific routing decisions
+  - Admin GUI with topic cards for managing configurations
 
-**ORAC STT Tasks:**
-- [ ] Create topic registry with auto-registration from heartbeats
-- [ ] Add topic cards to admin dashboard (not separate tab)
-- [ ] Visual status indicators (green=active, orange=dormant)
-- [ ] Settings cog per topic for Core URL override
-- [ ] Modify forwarding to check topic registry for URL overrides
+**ORAC STT Tasks (COMPLETED):**
+- [x] Created topic registry with persistence (`/app/data/topics.yaml`)
+- [x] Added per-topic ORAC Core URL configuration
+- [x] Updated admin interface with topic cards (120x80px, green=active, orange=dormant)
+- [x] Modified heartbeat forwarding to use per-topic Core URLs
+- [x] Auto-registration of topics from heartbeats
 
-**ORAC Core Tasks:**
+**Test Results (2025-08-29):**
+- Successfully auto-registered 4 topics (jarvis, friday, cortana, alfred)
+- Per-topic Core URL configuration working (jarvis → http://192.168.8.100:8080)
+- Topics persist across restarts in `/app/data/topics.yaml`
+- Admin UI displays topic cards with activity status
+- Heartbeats processed and topics grouped by Core URL for forwarding
+- **UI Status**: Topic cards display correctly with names (JARVIS, FRIDAY, ALFRED)
+- **Note**: Topics show wake word names, not the actual topic field from Hey ORAC
+- **Known Issues**: 
+  - Layout needs adjustment for smaller screens
+  - Topics section positioning needs refinement
+  - Custom scrollbar styling conflicts need resolution
+
+**ORAC Core Tasks (PENDING):**
 - [ ] Add `POST /v1/topics/heartbeat` endpoint (batched)
 - [ ] Auto-create topics from heartbeat if they don't exist
 - [ ] Track source health and last activity timestamps
 - [ ] Display source status in topic management interface
 - [ ] Support topic metadata from heartbeats
 
-#### 📋 Phase 3: PENDING
+#### 🔄 Phase 3: NEXT - Hey ORAC Heartbeat Implementation
 **Hey ORAC Integration**
-- [ ] Add ORAC STT URL configuration per wake word
+- [ ] Add heartbeat configuration to settings.json
+- [ ] Implement heartbeat sender in transport module
 - [ ] Send batched heartbeats when wake words are enabled/saved
 - [ ] Include all enabled models in single heartbeat payload
 - [ ] Add connection test functionality in settings
 - [ ] Implement activity-based heartbeat intervals (30s active, 60s idle)
+- [ ] Map wake words to topics in heartbeat data
+- [ ] **Important**: Ensure `topic` field is sent correctly (currently showing wake word name instead)
+
+**ORAC STT UI Fixes Needed:**
+- [ ] Fix layout responsiveness for different screen sizes
+- [ ] Ensure TOPICS label is always visible without maximizing window
+- [ ] Resolve scrollbar styling (green custom scrollbar vs browser scrollbar)
+- [ ] Adjust spacing between sections for better visual hierarchy
 
 #### 📋 Phase 4: PENDING
 **Enhanced Health Monitoring & Multi-Instance Support**
@@ -312,7 +306,7 @@ Note: Inactive models are filtered out by ORAC STT before forwarding to ORAC Cor
 - [ ] Support multiple ORAC Core instances with topic-based routing
 - [ ] Add load balancing for distributed Core instances
 
-### 10. Next Implementation Steps
+### 9. Next Implementation Steps
 
 #### ✅ Completed: Phase 2A - ORAC STT Heartbeat Receiver
 All Phase 2A tasks have been completed and deployed to Orin Nano.
@@ -323,47 +317,39 @@ All Phase 2A tasks have been completed and deployed to Orin Nano.
    ```python
    from pydantic import BaseModel
    from typing import Optional, Dict, Any
-   from datetime import datetime
    
    class TopicConfig(BaseModel):
-       name: str  # Topic identifier from wake word
-       orac_core_url: Optional[str] = None  # Core URL (None = use default)
+       name: str  # Topic identifier
+       orac_core_url: str  # Core instance URL for this topic
        timeout: int = 30  # Request timeout
-       last_seen: Optional[datetime] = None  # Last heartbeat received
-       is_active: bool = False  # Currently receiving heartbeats
-       metadata: Dict[str, Any] = {}  # Wake word, trigger count, etc.
+       retry_policy: Dict[str, Any]  # Retry configuration
+       metadata: Dict[str, Any]  # Additional topic metadata
    
    class TopicRegistry:
        def __init__(self):
            self.topics: Dict[str, TopicConfig] = {}
        
-       def auto_register(self, topic_name: str, metadata: Dict):
-           """Auto-register topic from heartbeat (lazy creation)"""
-       
-       def update_activity(self, topic_name: str):
-           """Update last_seen timestamp from heartbeat"""
+       def register_topic(self, config: TopicConfig):
+           """Register or update a topic configuration"""
        
        def get_core_url(self, topic: str) -> Optional[str]:
-           """Get ORAC Core URL for topic (None = use default)"""
+           """Get ORAC Core URL for a specific topic"""
        
-       def get_active_topics(self) -> List[TopicConfig]:
-           """Get topics with recent heartbeats (< 2 minutes old)"""
+       def sync_with_core(self, core_url: str):
+           """Synchronize topic list with ORAC Core"""
    ```
 
 2. **Update Admin Interface** (`src/orac_stt/web/`)
-   - Add topic cards directly in main dashboard (below top bar)
-   - Each card shows:
-     - Topic name (from wake word)
-     - Status indicator (green = active, pale orange = dormant)
-     - Settings cog for configuring Core URL
-   - Cards auto-appear when topics are discovered via heartbeats
-   - Click settings to override default Core URL for specific topic
+   - Add topic management page similar to ORAC Core
+   - GUI for configuring per-topic ORAC Core URLs
+   - Visual indicators for topic health/status
+   - Batch operations for topic configuration
 
 3. **Modify Forwarding Logic** (`src/orac_stt/core/heartbeat_manager.py`)
-   - Auto-register topics as they arrive in heartbeats
    - Use topic registry to determine target Core URL
-   - Fall back to default Core URL if topic has no override
-   - Group forwarding by Core instance for efficiency
+   - Group heartbeats by target Core instance
+   - Forward to multiple Core instances if needed
+   - Handle per-topic routing failures gracefully
 
 #### Next Steps (Phase 2C - ORAC Core Topic Auto-Creation)
 
@@ -401,7 +387,7 @@ All Phase 2A tasks have been completed and deployed to Orin Nano.
    - Visual alert for stale topics (red indicator)
    - Batch refresh for multiple topic updates
 
-### 11. Configuration Example
+### 10. Configuration Example
 
 #### Complete Setup Scenario (Batched)
 
@@ -438,7 +424,7 @@ All Phase 2A tasks have been completed and deployed to Orin Nano.
 
 This batched flow reduces network traffic while providing comprehensive monitoring and automatic topic management across the ORAC ecosystem.
 
-### 12. Technical Implementation Notes
+### 11. Technical Implementation Notes
 
 #### Data Persistence
 - **ORAC STT**: Heartbeats stored in memory with TTL (no persistence needed)
@@ -467,7 +453,7 @@ This batched flow reduces network traffic while providing comprehensive monitori
 - HTTPS not required for local network
 - Future: Add API keys for production deployment
 
-### 13. Important Deployment & Configuration Considerations
+### 12. Important Deployment & Configuration Considerations
 
 #### Branch Management
 - **Deploy Script Fix**: The `deploy_and_test.sh` script has been updated to use the current Git branch
@@ -488,7 +474,7 @@ This batched flow reduces network traffic while providing comprehensive monitori
   - Enables dynamic reconfiguration without restarts
   - Supports topic migration between Core instances
 
-### 14. Testing Strategy
+### 13. Testing Strategy
 
 #### Unit Tests
 - Heartbeat endpoint validation
