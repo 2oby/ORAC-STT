@@ -15,8 +15,12 @@ REMOTE_DIR="/home/${ORIN_USER}/${PROJECT_NAME}"
 # Get commit message from argument or use default
 COMMIT_MSG="${1:-Update ORAC STT}"
 
+# Get current branch
+CURRENT_BRANCH=$(git branch --show-current)
+
 echo "🚀 Deploying ORAC STT to Orin Nano (${ORIN_HOST})"
 echo "   Commit message: ${COMMIT_MSG}"
+echo "   Branch: ${CURRENT_BRANCH}"
 echo
 
 # Check if there are changes to commit
@@ -35,7 +39,7 @@ fi
 
 # Push to GitHub
 echo "📤 Pushing to GitHub..."
-git push origin master || {
+git push origin ${CURRENT_BRANCH} || {
     echo "❌ Failed to push to GitHub"
     echo "   Check your network connection and GitHub credentials"
     exit 1
@@ -47,11 +51,11 @@ echo "📥 Updating code on Orin..."
 ssh ${ORIN_HOST} "
     if [ -d ${REMOTE_DIR}/.git ]; then
         echo 'Pulling latest changes...'
-        cd ${REMOTE_DIR} && git pull origin master
+        cd ${REMOTE_DIR} && git fetch origin && git checkout ${CURRENT_BRANCH} && git pull origin ${CURRENT_BRANCH}
     else
         echo 'Cloning repository...'
         rm -rf ${REMOTE_DIR}
-        git clone https://github.com/2oby/ORAC-STT.git ${REMOTE_DIR}
+        git clone -b ${CURRENT_BRANCH} https://github.com/2oby/ORAC-STT.git ${REMOTE_DIR}
     fi
 "
 
