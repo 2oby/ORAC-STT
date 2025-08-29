@@ -752,13 +752,25 @@ class OracSTTAdmin {
                     prevData.is_active !== topic.is_active ||
                     prevData.last_seen !== topic.last_seen;
                 
+                // Only pulse animation for active topics receiving heartbeats
+                // Dormant/stale topics just change color without animation
                 if (dataChanged && !existingCard.classList.contains('refreshing')) {
-                    existingCard.classList.add('refreshing');
-                    // Remove class after animation completes (1.5s duration)
-                    existingCard.dataset.animationTimeout = setTimeout(() => {
-                        existingCard.classList.remove('refreshing');
-                        delete existingCard.dataset.animationTimeout;
-                    }, 1500);
+                    if (topic.is_active) {
+                        // Active topic - add pulse animation
+                        existingCard.classList.add('refreshing');
+                        // Remove class after animation completes (1.5s duration)
+                        existingCard.dataset.animationTimeout = setTimeout(() => {
+                            existingCard.classList.remove('refreshing');
+                            delete existingCard.dataset.animationTimeout;
+                        }, 1500);
+                    } else {
+                        // Inactive topic - trigger color transition by adding/removing refreshing
+                        // This allows CSS transition to take effect
+                        existingCard.classList.add('refreshing');
+                        requestAnimationFrame(() => {
+                            existingCard.classList.remove('refreshing');
+                        });
+                    }
                 }
                 
                 // Ensure card is in correct position
