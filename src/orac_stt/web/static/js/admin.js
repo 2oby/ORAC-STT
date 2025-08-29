@@ -193,8 +193,18 @@ class OracSTTAdmin {
         };
         
         this.ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            this.handleWebSocketMessage(data);
+            // Handle ping/pong messages
+            if (event.data === 'pong') {
+                // Ignore pong messages
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(event.data);
+                this.handleWebSocketMessage(data);
+            } catch (error) {
+                console.error('Failed to parse WebSocket message:', event.data, error);
+            }
         };
         
         this.ws.onerror = (error) => {
