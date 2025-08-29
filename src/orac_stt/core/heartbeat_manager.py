@@ -43,8 +43,16 @@ class HeartbeatManager:
         """Get or create ORAC Core client."""
         if self._core_client is None:
             try:
-                settings = load_config()
-                core_url = getattr(settings, 'orac_core_url', None)
+                # First try to get from settings manager (runtime config)
+                from ..core.settings_manager import get_settings_manager
+                settings_mgr = get_settings_manager()
+                core_url = settings_mgr.get('orac_core_url')
+                
+                # Fallback to config file
+                if not core_url:
+                    settings = load_config()
+                    core_url = getattr(settings, 'orac_core_url', None)
+                
                 if core_url:
                     self._core_client = ORACCoreClient(base_url=core_url)
                     logger.info(f"Initialized ORAC Core client for heartbeat: {core_url}")

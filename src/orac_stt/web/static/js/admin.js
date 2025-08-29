@@ -1084,6 +1084,111 @@ class OracSTTAdmin {
             this.loadTopics();
         }, 10000);
     }
+    
+    // ORAC Core Configuration Methods
+    async showCoreConfigPopup() {
+        try {
+            // Load current configuration
+            const response = await fetch('/admin/config/orac-core');
+            if (response.ok) {
+                const config = await response.json();
+                document.getElementById('oracCoreUrl').value = config.orac_core_url;
+            }
+            
+            // Clear status
+            const statusEl = document.getElementById('coreConfigStatus');
+            statusEl.textContent = '';
+            statusEl.className = 'config-status';
+            
+            // Show modal
+            document.getElementById('oracCoreConfigModal').style.display = 'block';
+        } catch (error) {
+            console.error('Failed to load ORAC Core config:', error);
+        }
+    }
+    
+    closeCoreConfigPopup() {
+        document.getElementById('oracCoreConfigModal').style.display = 'none';
+    }
+    
+    async testCoreConnection() {
+        const url = document.getElementById('oracCoreUrl').value;
+        const statusEl = document.getElementById('coreConfigStatus');
+        
+        if (!url) {
+            statusEl.textContent = '⚠ Please enter a URL';
+            statusEl.className = 'config-status status-warning';
+            return;
+        }
+        
+        statusEl.textContent = '⏳ Testing connection...';
+        statusEl.className = 'config-status status-loading';
+        
+        try {
+            const response = await fetch('/admin/config/orac-core/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ orac_core_url: url })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                statusEl.textContent = '✅ ' + result.message;
+                statusEl.className = 'config-status status-success';
+            } else {
+                statusEl.textContent = '❌ ' + result.message;
+                statusEl.className = 'config-status status-error';
+            }
+        } catch (error) {
+            statusEl.textContent = '❌ Failed to test connection';
+            statusEl.className = 'config-status status-error';
+            console.error('Connection test failed:', error);
+        }
+    }
+    
+    async saveCoreConfig() {
+        const url = document.getElementById('oracCoreUrl').value;
+        const statusEl = document.getElementById('coreConfigStatus');
+        
+        if (!url) {
+            statusEl.textContent = '⚠ Please enter a URL';
+            statusEl.className = 'config-status status-warning';
+            return;
+        }
+        
+        statusEl.textContent = '⏳ Saving configuration...';
+        statusEl.className = 'config-status status-loading';
+        
+        try {
+            const response = await fetch('/admin/config/orac-core', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ orac_core_url: url })
+            });
+            
+            if (response.ok) {
+                statusEl.textContent = '✅ Configuration saved successfully';
+                statusEl.className = 'config-status status-success';
+                
+                // Close modal after a short delay
+                setTimeout(() => {
+                    this.closeCoreConfigPopup();
+                }, 1500);
+            } else {
+                statusEl.textContent = '❌ Failed to save configuration';
+                statusEl.className = 'config-status status-error';
+            }
+        } catch (error) {
+            statusEl.textContent = '❌ Failed to save configuration';
+            statusEl.className = 'config-status status-error';
+            console.error('Failed to save config:', error);
+        }
+    }
 }
 
 // Initialize when DOM is ready

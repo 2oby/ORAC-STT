@@ -9,9 +9,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, HttpUrl
 
 from ..config.loader import load_config
+from ..core.settings_manager import get_settings_manager
 from ..models.unified_loader import UnifiedWhisperLoader
 from ..utils.logging import get_logger
 from .stt import get_model_loader, get_command_buffer
+import aiohttp
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -378,3 +380,83 @@ def setup_command_observer():
         logger.info("Set up command buffer observer for WebSocket notifications")
     except Exception as e:
         logger.error(f"Failed to set up command observer: {e}")
+
+
+class ORACCoreConfig(BaseModel):
+    """ORAC Core configuration."""
+    orac_core_url: str
+
+
+class ConfigTestResponse(BaseModel):
+    """Configuration test response."""
+    success: bool
+    message: str
+    url: str
+
+
+@router.get("/config/orac-core")
+async def get_orac_core_config() -> ORACCoreConfig:
+    """Get current ORAC Core configuration."""
+    try:
+        settings_mgr = get_settings_manager()
+        url = settings_mgr.get("orac_core_url", "http://192.168.8.191:8000")
+        return ORACCoreConfig(orac_core_url=url)
+    except Exception as e:
+        logger.error(f"Failed to get ORAC Core config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/config/orac-core")
+async def update_orac_core_config(config: ORACCoreConfig) -> Dict[str, str]:
+    """Update ORAC Core configuration."""
+    try:
+        settings_mgr = get_settings_manager()
+        settings_mgr.set("orac_core_url", config.orac_core_url)
+        logger.info(f"Updated ORAC Core URL to: {config.orac_core_url}")
+        return {"status": "ok", "message": "Configuration updated"}
+    except Exception as e:
+        logger.error(f"Failed to update ORAC Core config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/config/orac-core/test")
+async def test_orac_core_connection(config: ORACCoreConfig) -> ConfigTestResponse:
+    """Test connection to ORAC Core."""
+    url = config.orac_core_url.rstrip('/')
+    
+    try:
+        # Try to connect to ORAC Core health endpoint
+        test_url = f"{url}/health"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(test_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                if response.status == 200:
+                    return ConfigTestResponse(
+                        success=True,
+                        message="Successfully connected to ORAC Core",
+                        url=url
+                    )
+                else:
+                    return ConfigTestResponse(
+                        success=False,
+                        message=f"ORAC Core returned status {response.status}",
+                        url=url
+                    )
+    except aiohttp.ClientConnectorError:
+        return ConfigTestResponse(
+            success=False,
+            message="Could not connect to ORAC Core (connection refused)",
+            url=url
+        )
+    except asyncio.TimeoutError:
+        return ConfigTestResponse(
+            success=False,
+            message="Connection to ORAC Core timed out",
+            url=url
+        )
+    except Exception as e:
+        return ConfigTestResponse(
+            success=False,
+            message=f"Error: {str(e)}",
+            url=url
+        )

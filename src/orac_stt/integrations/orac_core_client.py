@@ -174,7 +174,15 @@ def get_orac_core_client() -> ORACCoreClient:
     """Get or create the global ORAC Core client instance."""
     global _orac_core_client
     if _orac_core_client is None:
-        _orac_core_client = ORACCoreClient()
+        # Try to get URL from settings manager
+        try:
+            from ..core.settings_manager import get_settings_manager
+            settings_mgr = get_settings_manager()
+            base_url = settings_mgr.get('orac_core_url', "http://192.168.8.191:8000")
+        except:
+            base_url = "http://192.168.8.191:8000"
+        
+        _orac_core_client = ORACCoreClient(base_url=base_url)
     return _orac_core_client
 
 

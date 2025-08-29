@@ -29,6 +29,7 @@
                 <span id="connectionText">Connecting...</span>
                 <span class="model-info">Model: <span id="currentModel">Loading...</span></span>
                 <button class="settings-btn" onclick="window.oracAdmin.showSettingsPopup()" title="API Info">ⓘ</button>
+                <button class="settings-btn" onclick="window.oracAdmin.showCoreConfigPopup()" title="ORAC Core Settings">⚙</button>
             </div>
             
             <div class="model-selector">
@@ -123,6 +124,34 @@
                     <button class="btn btn-test" onclick="window.oracAdmin.testTopicConnection()">Test Connection</button>
                     <button class="btn btn-save" onclick="window.oracAdmin.saveTopicSettings()">Save</button>
                     <button class="btn btn-cancel" onclick="window.oracAdmin.closeTopicSettings()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ORAC Core Configuration Modal -->
+    <div id="oracCoreConfigModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>ORAC Core Configuration</h3>
+                <button class="modal-close" onclick="window.oracAdmin.closeCoreConfigPopup()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="config-section">
+                    <h4>ORAC Core URL</h4>
+                    <p>Configure where ORAC STT forwards transcriptions and heartbeats</p>
+                    <div class="form-group">
+                        <label for="oracCoreUrl">ORAC Core URL:</label>
+                        <input type="text" id="oracCoreUrl" class="form-input" placeholder="http://192.168.8.191:8000">
+                    </div>
+                    <div class="config-status" id="coreConfigStatus"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="modal-footer-right">
+                    <button class="btn btn-test" onclick="window.oracAdmin.testCoreConnection()">Test Connection</button>
+                    <button class="btn btn-save" onclick="window.oracAdmin.saveCoreConfig()">Save</button>
+                    <button class="btn btn-cancel" onclick="window.oracAdmin.closeCoreConfigPopup()">Cancel</button>
                 </div>
             </div>
         </div>
