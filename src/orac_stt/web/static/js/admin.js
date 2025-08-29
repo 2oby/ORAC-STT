@@ -693,13 +693,22 @@ class OracSTTAdmin {
     }
     
     renderTopics(topics) {
+        // Check if container exists
+        if (!this.topicsContainer) {
+            console.error('Topics container not found');
+            return;
+        }
+        
         // Clear existing topics
         this.topicsContainer.innerHTML = '';
         this.topics.clear();
         
         if (!topics || topics.length === 0) {
+            console.log('No topics to display');
             return;
         }
+        
+        console.log(`Rendering ${topics.length} topics`);
         
         // Sort topics by activity (active first)
         topics.sort((a, b) => {
@@ -717,6 +726,11 @@ class OracSTTAdmin {
     }
     
     createTopicCard(topic) {
+        if (!this.topicCardTemplate) {
+            console.error('Topic card template not found');
+            return document.createElement('div');
+        }
+        
         const template = this.topicCardTemplate.content.cloneNode(true);
         const card = template.querySelector('.topic-card');
         
