@@ -246,6 +246,10 @@ body {
     box-shadow: 0 0 5px #ff9500;
 }
 
+.topic-card.dormant .topic-name {
+    color: #ff9500;
+}
+
 .topic-card.stale {
     border-color: #ff0040;
     opacity: 0.5;
@@ -254,6 +258,10 @@ body {
 .topic-card.stale .topic-status-dot {
     background: #ff0040;
     box-shadow: 0 0 5px #ff0040;
+}
+
+.topic-card.stale .topic-name {
+    color: #ff0040;
 }
 
 .topic-settings-btn {
