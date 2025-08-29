@@ -812,6 +812,34 @@ body::-webkit-scrollbar-thumb:hover {
     to { opacity: 1; }
 }
 
+@keyframes topicPulse {
+    0% {
+        box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
+                    inset 0 0 5px rgba(0, 255, 65, 0.1);
+        border-color: #00ff41;
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.8),
+                    0 0 40px rgba(0, 255, 65, 0.4),
+                    inset 0 0 15px rgba(0, 255, 65, 0.3);
+        border-color: #00ff41;
+        border-width: 2px;
+        background: linear-gradient(135deg, 
+                    rgba(0, 255, 65, 0.1) 0%, 
+                    rgba(26, 26, 26, 1) 50%,
+                    rgba(0, 255, 65, 0.05) 100%);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(0, 255, 65, 0.2),
+                    inset 0 0 5px rgba(0, 255, 65, 0.1);
+        border-color: #00ff41;
+    }
+}
+
+.topic-card.refreshing {
+    animation: topicPulse 1.5s ease-in-out;
+}
+
 @keyframes slideIn {
     from { 
         transform: translateY(-20px);

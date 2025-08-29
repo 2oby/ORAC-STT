@@ -709,12 +709,10 @@ class OracSTTAdmin {
             return;
         }
         
-        // Clear existing topics
-        this.topicsContainer.innerHTML = '';
-        this.topics.clear();
-        
         if (!topics || topics.length === 0) {
             console.log('No topics to display');
+            this.topicsContainer.innerHTML = '';
+            this.topics.clear();
             return;
         }
         
@@ -727,12 +725,100 @@ class OracSTTAdmin {
             return 0;
         });
         
-        // Create topic cards
+        // Track which topics we've seen
+        const seenTopics = new Set();
+        
+        // Update existing cards or create new ones
         topics.forEach(topic => {
+            seenTopics.add(topic.name);
+            const existingCard = document.querySelector(`[data-topic-name="${topic.name}"]`);
+            
+            if (existingCard) {
+                // Update existing card
+                this.updateTopicCard(existingCard, topic);
+                // Add pulse animation
+                existingCard.classList.add('refreshing');
+                setTimeout(() => {
+                    existingCard.classList.remove('refreshing');
+                }, 1500);
+            } else {
+                // Create new card
+                const card = this.createTopicCard(topic);
+                this.topicsContainer.appendChild(card);
+            }
+            
             this.topics.set(topic.name, topic);
-            const card = this.createTopicCard(topic);
-            this.topicsContainer.appendChild(card);
         });
+        
+        // Remove cards for topics that no longer exist
+        document.querySelectorAll('.topic-card').forEach(card => {
+            const topicName = card.dataset.topicName;
+            if (!seenTopics.has(topicName)) {
+                card.style.animation = 'fadeOut 0.5s ease-out';
+                setTimeout(() => {
+                    card.remove();
+                    this.topics.delete(topicName);
+                }, 500);
+            }
+        });
+    }
+    
+    updateTopicCard(card, topic) {
+        // Update status dot
+        const statusDot = card.querySelector('.topic-status-dot');
+        if (statusDot) {
+            statusDot.className = 'topic-status-dot';
+            if (topic.is_active) {
+                statusDot.classList.add('active');
+            } else {
+                // Check if stale (more than 120 seconds)
+                const lastSeen = new Date(topic.last_seen);
+                const now = new Date();
+                const secondsSinceLastSeen = (now - lastSeen) / 1000;
+                
+                if (secondsSinceLastSeen > 120) {
+                    statusDot.classList.add('stale');
+                } else {
+                    statusDot.classList.add('dormant');
+                }
+            }
+        }
+        
+        // Update card classes
+        card.className = 'topic-card';
+        if (!topic.is_active) {
+            const lastSeen = new Date(topic.last_seen);
+            const now = new Date();
+            const secondsSinceLastSeen = (now - lastSeen) / 1000;
+            
+            if (secondsSinceLastSeen > 120) {
+                card.classList.add('stale');
+            } else {
+                card.classList.add('dormant');
+            }
+        }
+        
+        // Update activity text
+        const activityEl = card.querySelector('.topic-activity');
+        if (activityEl) {
+            if (topic.last_seen) {
+                const lastSeen = new Date(topic.last_seen);
+                const now = new Date();
+                const diffMs = now - lastSeen;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins < 1) {
+                    activityEl.textContent = 'Just now';
+                } else if (diffMins < 60) {
+                    activityEl.textContent = `${diffMins}m ago`;
+                } else {
+                    const diffHours = Math.floor(diffMins / 60);
+                    activityEl.textContent = `${diffHours}h ago`;
+                }
+            } else {
+                activityEl.textContent = 'Never';
+            }
+        }
     }
     
     createTopicCard(topic) {
@@ -744,7 +830,7 @@ class OracSTTAdmin {
         const template = this.topicCardTemplate.content.cloneNode(true);
         const card = template.querySelector('.topic-card');
         
-        card.dataset.topic = topic.name;
+        card.dataset.topicName = topic.name;
         
         // Set status (active or dormant)
         if (!topic.is_active) {
