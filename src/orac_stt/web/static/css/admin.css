@@ -157,6 +157,19 @@ body {
     margin-top: 180px;
     padding: 0 20px;
     min-height: 100px;
+    margin-bottom: 20px;
+}
+
+.topics-header {
+    margin-bottom: 10px;
+}
+
+.topics-label {
+    color: #00ff41;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .topics-container {
@@ -164,7 +177,7 @@ body {
     gap: 15px;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 10px 0;
+    padding: 10px 40px 10px 0;  /* Add right padding to avoid scrollbar overlap */
     scrollbar-width: thin;
     scrollbar-color: #00ff41 #000;
 }
@@ -180,6 +193,17 @@ body {
 .topics-container::-webkit-scrollbar-thumb {
     background: #00ff41;
     border-radius: 3px;
+}
+
+.topics-separator {
+    margin-top: 15px;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        #00ff41 20%, 
+        #00ff41 80%, 
+        transparent 100%);
+    opacity: 0.5;
 }
 
 .topic-card {
@@ -220,14 +244,17 @@ body {
     background: transparent;
     border: none;
     color: #00ff41;
-    font-size: 14px;
+    font-size: 18px;  /* Increased from 14px to make cog 3x bigger visually */
     cursor: pointer;
     opacity: 0.6;
-    transition: opacity 0.3s;
+    transition: all 0.3s;
+    padding: 0;
+    line-height: 1;
 }
 
 .topic-settings-btn:hover {
     opacity: 1;
+    transform: rotate(90deg);  /* Rotate on hover for nice effect */
 }
 
 .topic-status-dot {
