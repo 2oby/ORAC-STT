@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test script for ORAC STT heartbeat functionality."""
+"""Test script for ORAC STT heartbeat and ORAC Core connectivity."""
 
 import asyncio
 import aiohttp
@@ -111,12 +111,61 @@ async def check_heartbeat_status(base_url: str):
         return False
 
 
+async def test_orac_core_connectivity(base_url: str):
+    """Test ORAC Core connectivity and configuration."""
+    
+    print("\n📍 Testing ORAC Core Configuration")
+    
+    # Get current ORAC Core configuration
+    url = f"{base_url}/admin/config/orac-core"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    config = await response.json()
+                    core_url = config.get('orac_core_url', 'Not configured')
+                    print(f"✅ Current ORAC Core URL: {core_url}")
+                else:
+                    print(f"❌ Failed to get ORAC Core config: {response.status}")
+                    return False
+    except Exception as e:
+        print(f"❌ Error getting ORAC Core config: {e}")
+        return False
+    
+    # Test connection to ORAC Core
+    print("\n📍 Testing connection to ORAC Core")
+    test_url = f"{base_url}/admin/config/orac-core/test"
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Test endpoint doesn't take payload, just tests current config
+            async with session.post(test_url) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get('success'):
+                        print(f"✅ ORAC Core connection test: {result.get('message')}")
+                        return True
+                    else:
+                        print(f"⚠️ ORAC Core connection test: {result.get('message')}")
+                        print("   Note: Heartbeats will still be processed by ORAC STT")
+                        return True  # Not critical if Core is down
+                else:
+                    print(f"❌ Connection test failed: {response.status}")
+                    return False
+    except Exception as e:
+        print(f"❌ Error testing ORAC Core connection: {e}")
+        return False
+
+
 async def test_heartbeat_flow(base_url: str):
     """Test the complete heartbeat flow."""
     
     print("\n" + "="*60)
-    print("🧪 Testing ORAC STT Heartbeat Functionality")
+    print("🧪 Testing ORAC STT Heartbeat & Core Connectivity")
     print("="*60)
+    
+    # Test 0: Check ORAC Core connectivity
+    print("\n📍 Test 0: ORAC Core Connectivity")
+    await test_orac_core_connectivity(base_url)
     
     # Test 1: Send heartbeat
     print("\n📍 Test 1: Send heartbeat")
@@ -155,20 +204,20 @@ async def main():
     parser = argparse.ArgumentParser(description="Test ORAC STT heartbeat functionality")
     parser.add_argument(
         "--url",
-        default="http://localhost:7272",
-        help="Base URL for ORAC STT (default: http://localhost:7272)"
+        default="http://orin3:7272",
+        help="Base URL for ORAC STT (default: http://orin3:7272)"
     )
     parser.add_argument(
-        "--orin",
+        "--local",
         action="store_true",
-        help="Use Orin Nano URL (http://192.168.8.191:7272)"
+        help="Use localhost URL (http://localhost:7272)"
     )
     
     args = parser.parse_args()
     
     # Determine base URL
-    if args.orin:
-        base_url = "http://192.168.8.191:7272"
+    if args.local:
+        base_url = "http://localhost:7272"
     else:
         base_url = args.url
     
