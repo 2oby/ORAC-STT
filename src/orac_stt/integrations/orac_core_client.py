@@ -143,18 +143,27 @@ class ORACCoreClient:
         Returns:
             True if Core is healthy, False otherwise
         """
-        url = f"{self.base_url}/v1/status"
+        # Try multiple possible health endpoints
+        health_endpoints = ["/health", "/v1/status"]
         
-        try:
-            session = await self._get_session()
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("status") == "running"
-                return False
-        except Exception as e:
-            logger.debug(f"Health check failed: {e}")
-            return False
+        for endpoint in health_endpoints:
+            url = f"{self.base_url}{endpoint}"
+            try:
+                session = await self._get_session()
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        # Check for different status fields
+                        if data.get("status") in ["ok", "running", "healthy"]:
+                            return True
+                        # If no status field but got 200, consider it healthy
+                        if response.status == 200:
+                            return True
+            except Exception as e:
+                logger.debug(f"Health check failed for {endpoint}: {e}")
+                continue
+        
+        return False
     
     async def close(self):
         """Close the HTTP session."""
