@@ -190,7 +190,7 @@ async def get_orac_core_config() -> ORACCoreConfig:
     except Exception as e:
         logger.error(f"Failed to get ORAC Core config: {e}")
         # Return default config if unable to get current
-        return ORACCoreConfig(orac_core_url="http://192.168.8.191:8000", timeout=30)
+        return ORACCoreConfig(orac_core_url="http://192.168.8.192:8000", timeout=30)
 
 
 @router.post("/config/orac-core")

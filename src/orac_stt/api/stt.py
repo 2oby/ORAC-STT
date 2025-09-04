@@ -86,7 +86,7 @@ def get_core_client() -> ORACCoreClient:
     if _core_client is None:
         settings = load_config()
         # Use ORAC Core URL from config or default
-        core_url = getattr(settings, 'orac_core_url', 'http://192.168.8.191:8000')
+        core_url = getattr(settings, 'orac_core_url', 'http://192.168.8.192:8000')
         _core_client = ORACCoreClient(base_url=core_url)
         logger.info(f"Initialized ORAC Core client: {core_url}")
     

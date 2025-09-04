@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     log_format: str = Field(default="json", env="LOG_FORMAT")
-    orac_core_url: str = Field(default="http://192.168.8.191:8000", env="ORAC_CORE_URL")
+    orac_core_url: str = Field(default="http://192.168.8.192:8000", env="ORAC_CORE_URL")
     
     model: ModelConfig = Field(default_factory=ModelConfig)
     api: APIConfig = Field(default_factory=APIConfig)

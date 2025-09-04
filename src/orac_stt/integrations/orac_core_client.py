@@ -14,7 +14,7 @@ _orac_core_client: Optional['ORACCoreClient'] = None
 class ORACCoreClient:
     """Client for forwarding transcriptions to ORAC Core with topic support."""
     
-    def __init__(self, base_url: str = "http://192.168.8.191:8000", timeout: int = 30):
+    def __init__(self, base_url: str = "http://192.168.8.192:8000", timeout: int = 30):
         """Initialize ORAC Core client.
         
         Args:
@@ -187,9 +187,9 @@ def get_orac_core_client() -> ORACCoreClient:
         try:
             from ..core.settings_manager import get_settings_manager
             settings_mgr = get_settings_manager()
-            base_url = settings_mgr.get('orac_core_url', "http://192.168.8.191:8000")
+            base_url = settings_mgr.get('orac_core_url', "http://192.168.8.192:8000")
         except:
-            base_url = "http://192.168.8.191:8000"
+            base_url = "http://192.168.8.192:8000"
         
         _orac_core_client = ORACCoreClient(base_url=base_url)
     return _orac_core_client

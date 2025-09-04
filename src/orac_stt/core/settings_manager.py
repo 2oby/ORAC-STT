@@ -31,7 +31,7 @@ class SettingsManager:
             logger.info("No existing settings file, using defaults")
             # Set defaults
             self._settings = {
-                "orac_core_url": "http://192.168.8.191:8000"
+                "orac_core_url": "http://192.168.8.192:8000"
             }
             self.save()
             return
@@ -46,7 +46,7 @@ class SettingsManager:
             logger.error(f"Failed to load settings: {e}")
             # Use defaults if load fails
             self._settings = {
-                "orac_core_url": "http://192.168.8.191:8000"
+                "orac_core_url": "http://192.168.8.192:8000"
             }
     
     def save(self) -> None:

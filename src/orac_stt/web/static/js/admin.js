@@ -537,7 +537,7 @@ class OracSTTAdmin {
         const webhookUrl = `http://${host}:${port}/stt/v1/stream`;
         
         // Load current ORAC Core config
-        let oracCoreConfig = { url: 'http://192.168.8.191:8000', timeout: 30 };
+        let oracCoreConfig = { url: 'http://192.168.8.192:8000', timeout: 30 };
         try {
             const response = await fetch('/admin/config/orac-core');
             if (response.ok) {
@@ -578,7 +578,7 @@ class OracSTTAdmin {
                 <p>Configure where transcriptions are sent:</p>
                 <div class="orac-core-config">
                     <div class="input-group">
-                        <input type="text" id="oracCoreUrl" class="config-input" value="${oracCoreConfig.url}" placeholder="http://192.168.8.191:8000">
+                        <input type="text" id="oracCoreUrl" class="config-input" value="${oracCoreConfig.url}" placeholder="http://192.168.8.192:8000">
                         <button class="test-btn" onclick="window.oracAdmin.testOracCoreConnection()">TEST</button>
                     </div>
                     <div class="config-status" id="oracCoreStatus"></div>
