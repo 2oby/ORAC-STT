@@ -12,11 +12,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     python3.10 python3.10-dev python3-pip \
     curl \
-    git \
     libsndfile1 \
     ffmpeg \
     build-essential \
-    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symlinks for python
@@ -48,21 +46,7 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir \
     aiohttp==3.9.1
 
-# Build whisper.cpp with CUDA support
-RUN cd /tmp && \
-    git clone https://github.com/ggerganov/whisper.cpp && \
-    cd whisper.cpp && \
-    # Build with CUDA support for Jetson
-    CUDACXX=/usr/local/cuda/bin/nvcc make -j$(nproc) GGML_CUDA=1 && \
-    # Build the shared library
-    make libwhisper.so && \
-    # Copy binaries and library
-    mkdir -p /app/third_party/whisper_cpp/bin && \
-    cp main /app/third_party/whisper_cpp/bin/whisper-cli && \
-    cp libwhisper.so /usr/local/lib/ && \
-    ldconfig && \
-    # Clean up
-    cd / && rm -rf /tmp/whisper.cpp
+# Note: whisper.cpp binaries and libraries are mounted from host at runtime
 
 # Copy application code
 COPY src/ ./src/
