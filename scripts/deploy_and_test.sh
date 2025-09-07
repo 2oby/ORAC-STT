@@ -7,7 +7,7 @@
 set -e
 
 # Configuration
-ORIN_HOST="orin3"
+ORIN_HOST="orin4"
 ORIN_USER="${ORIN_USER:-toby}"
 PROJECT_NAME="orac-stt"
 REMOTE_DIR="/home/${ORIN_USER}/${PROJECT_NAME}"

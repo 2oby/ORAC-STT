@@ -11,10 +11,10 @@ Speech-to-Text service for NVIDIA Orin Nano. Accepts audio streams, transcribes 
 - **Working Directory**: `/Users/2oby/pCloud Box/Projects/ORAC STT`
 - **Git Remote**: `https://github.com/2oby/ORAC-STT`
 - **Python**: 3.10+ (Pydantic v2, FastAPI)
-- **SSH Access**: `ssh orin3` (passwordless to Orin Nano)
+- **SSH Access**: `ssh orin4` (passwordless to Orin Nano)
 
 ### Orin Nano Target
-- **Host**: `orin3` (NVIDIA Orin Nano 8GB)
+- **Host**: `orin4` (NVIDIA Orin Nano 8GB)
 - **OS**: Ubuntu 20.04 LTS (ARM64)
 - **GPU**: CUDA 12.6, nvidia-smi available
 - **Docker**: Enabled, supports `--gpus all`
@@ -33,7 +33,7 @@ cd scripts && ./deploy_and_test.sh
 ```
 
 ### 2. Deploy Script Flow (`deploy_and_test.sh`)
-1. **Sync**: `rsync` project files to `orin3:/home/toby/orac-stt/`
+1. **Sync**: `rsync` project files to `orin4:/home/toby/orac-stt/`
 2. **Build**: `docker build -t orac-stt:latest .` on Orin
 3. **Deploy**: Stop old container, start new with volume mounts
 4. **Test**: Health check, metrics validation, log inspection
@@ -42,12 +42,12 @@ cd scripts && ./deploy_and_test.sh
 ### 3. Manual Operations
 ```bash
 # Direct Orin commands
-ssh orin3 "docker ps | grep orac-stt"
-ssh orin3 "docker logs -f orac-stt"
-ssh orin3 "curl http://localhost:7272/health"
+ssh orin4 "docker ps | grep orac-stt"
+ssh orin4 "docker logs -f orac-stt"
+ssh orin4 "curl http://localhost:7272/health"
 
 # Container management
-ssh orin3 "docker stop orac-stt && docker rm orac-stt"
+ssh orin4 "docker stop orac-stt && docker rm orac-stt"
 ```
 
 ## Configuration
@@ -76,14 +76,14 @@ ssh orin3 "docker stop orac-stt && docker rm orac-stt"
 cd scripts && ./deploy_and_test.sh
 
 # Check logs
-ssh orin3 "docker logs --tail 20 orac-stt"
+ssh orin4 "docker logs --tail 20 orac-stt"
 
 # Test endpoints
-curl -s http://orin3:7272/health | jq .
-curl -s http://orin3:7272/metrics | head -10
+curl -s http://orin4:7272/health | jq .
+curl -s http://orin4:7272/metrics | head -10
 
 # Force rebuild (no cache)
-ssh orin3 "cd /home/toby/orac-stt && docker build --no-cache -t orac-stt ."
+ssh orin4 "cd /home/toby/orac-stt && docker build --no-cache -t orac-stt ."
 ```
 
 ## Performance Targets

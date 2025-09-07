@@ -3,7 +3,7 @@
 
 set -e
 
-ORIN_HOST="${1:-orin3}"
+ORIN_HOST="${1:-orin4}"
 
 echo "🧪 Testing ORAC STT on ${ORIN_HOST}"
 

@@ -17,7 +17,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-ORIN_HOST="${ORIN_HOST:-orin3}"
+ORIN_HOST="${ORIN_HOST:-orin4}"
 ORIN_USER="${ORIN_USER:-toby}"
 STT_URL="http://${ORIN_HOST}:7272"
 

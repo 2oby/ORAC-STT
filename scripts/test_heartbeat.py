@@ -204,8 +204,8 @@ async def main():
     parser = argparse.ArgumentParser(description="Test ORAC STT heartbeat functionality")
     parser.add_argument(
         "--url",
-        default="http://orin3:7272",
-        help="Base URL for ORAC STT (default: http://orin3:7272)"
+        default="http://orin4:7272",
+        help="Base URL for ORAC STT (default: http://orin4:7272)"
     )
     parser.add_argument(
         "--local",
