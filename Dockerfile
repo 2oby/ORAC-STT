@@ -12,9 +12,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     python3.10 python3.10-dev python3-pip \
     curl \
+    git \
     libsndfile1 \
     ffmpeg \
     build-essential \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symlinks for python
@@ -46,18 +48,28 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir \
     aiohttp==3.9.1
 
-# We'll use whisper.cpp instead of PyTorch for better performance on Jetson
-# The whisper.cpp binaries will be built on the device and copied in
+# Build whisper.cpp with CUDA support
+RUN cd /tmp && \
+    git clone https://github.com/ggerganov/whisper.cpp && \
+    cd whisper.cpp && \
+    # Build with CUDA support for Jetson
+    CUDACXX=/usr/local/cuda/bin/nvcc make -j$(nproc) GGML_CUDA=1 && \
+    # Build the shared library
+    make libwhisper.so && \
+    # Copy binaries and library
+    mkdir -p /app/third_party/whisper_cpp/bin && \
+    cp main /app/third_party/whisper_cpp/bin/whisper-cli && \
+    cp libwhisper.so /usr/local/lib/ && \
+    ldconfig && \
+    # Clean up
+    cd / && rm -rf /tmp/whisper.cpp
 
 # Copy application code
 COPY src/ ./src/
 COPY config.toml.example ./config.toml
 
 # Create necessary directories
-RUN mkdir -p /app/models /app/logs /app/certs /app/third_party/whisper_cpp/bin
-
-# Note: whisper.cpp binaries should be built on Jetson and mounted at runtime
-# via: -v /path/to/whisper_cpp/bin:/app/third_party/whisper_cpp/bin
+RUN mkdir -p /app/models /app/logs /app/certs
 
 # Expose port
 EXPOSE 7272

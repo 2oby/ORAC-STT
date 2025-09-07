@@ -4,11 +4,12 @@ The ORAC STT (Speech-to-Text) Service is designed to run on NVIDIA Orin Nano, pr
 
 ## Key Features
 
-- **HTTP STT API**: Accepts POST requests at `/stt/v1/stream` for 16kHz 16-bit mono WAV/PCM audio. Supports model selection via `X-Model-Name` header and optional Bearer token authentication.
-- **Web Admin Interface**: Real-time monitoring dashboard at `/admin/` with command history, audio playback, and model management.
-- **gRPC Stub**: Includes a bidirectional gRPC endpoint (disabled by default) with protobuf schema for future streaming support.
+- **HTTP STT API**: Accepts POST requests at `/stt/v1/stream/{topic}` for 16kHz 16-bit mono WAV/PCM audio with topic-based routing. Supports model selection via `X-Model-Name` header and optional Bearer token authentication.
+- **Topic System Integration**: Forwards transcriptions to ORAC Core with topic context for grammar-based generation and context-aware processing.
+- **Web Admin Interface**: Real-time monitoring dashboard at `/admin/` with command history, audio playback, model management, and topic visualization.
+- **Heartbeat Support**: Receives and processes heartbeats from Hey ORAC, maintaining active connection status and topic registry.
 - **Model Management**: Uses whisper.cpp with GGML quantized models (tiny/base/small available) optimized for edge deployment. Built specifically for Orin Nano with CUDA compute capability 8.7.
-- **Egress to Command API**: Posts transcribed text, confidence, and language to the Command API, with robust error handling and exponential backoff retries.
+- **ORAC Core Integration**: Automatically forwards transcribed text with topic metadata to ORAC Core for AI processing.
 - **Performance**: Targets <500ms median latency from speech end to text, and <25% sustained CPU usage on Orin Nano 8GB.
 - **Security**: Implements mutual TLS (mTLS) with self-signed certificates and a 6-digit PIN pairing process for secure first-run setup.
 - **Observability**: Provides Prometheus `/metrics` and `/health` endpoints for monitoring, and includes circuit breaker logic for repeated decode errors.
