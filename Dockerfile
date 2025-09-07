@@ -63,4 +63,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:7272/health || exit 1
 
 # Run the application
-CMD ["python", "-m", "src.orac_stt.main"]
+CMD ["python3.10", "-m", "src.orac_stt.main"]
