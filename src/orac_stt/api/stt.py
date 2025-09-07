@@ -237,6 +237,16 @@ async def _transcribe_impl(
     """Internal implementation of transcription with topic support."""
     start_time = time.time()
     
+    # Initialize variables that we'll need for error handling
+    audio_data = None
+    duration = 0.0
+    audio_path = None
+    text = ""
+    confidence = 0.0
+    detected_language = "unknown"
+    has_error = False
+    error_message = None
+    
     try:
         # Read uploaded file
         audio_bytes = await file.read()
@@ -251,6 +261,9 @@ async def _transcribe_impl(
         # Prepare audio for model
         audio_data = audio_processor.prepare_for_whisper(audio_data)
         
+        # Save audio IMMEDIATELY so we have it even if transcription fails
+        audio_path = save_debug_recording(audio_data, sample_rate, "[Processing...]")
+        
         logger.info(
             "Processing audio",
             extra={
@@ -261,47 +274,75 @@ async def _transcribe_impl(
             }
         )
         
-        # Transcribe audio
-        result = await transcribe_audio(
-            audio_data,
-            sample_rate,
-            language=language,
-            task=task
-        )
+        # Try to transcribe audio
+        try:
+            result = await transcribe_audio(
+                audio_data,
+                sample_rate,
+                language=language,
+                task=task
+            )
+            
+            # Extract results
+            text = result.get("text", "").strip()
+            confidence = result.get("confidence", 0.0)
+            detected_language = result.get("language", language or "unknown")
+            
+            logger.info(
+                "Transcription complete",
+                extra={
+                    "text_length": len(text),
+                    "confidence": confidence,
+                    "language": detected_language,
+                    "processing_time": time.time() - start_time
+                }
+            )
+            
+        except Exception as transcribe_error:
+            # Transcription failed, but we still have audio
+            logger.error(f"Transcription failed: {transcribe_error}", exc_info=True)
+            has_error = True
+            error_message = str(transcribe_error)
+            text = f"[Transcription Failed: {error_message}]"
+            confidence = 0.0
+            detected_language = "unknown"
         
-        # Extract results
-        text = result.get("text", "").strip()
-        confidence = result.get("confidence", 0.0)
-        detected_language = result.get("language", language)
+    except AudioValidationError as e:
+        # Audio validation failed - this is a client error
+        logger.warning(f"Audio validation failed: {e}")
+        has_error = True
+        error_message = f"Invalid audio: {str(e)}"
+        text = f"[Invalid Audio: {str(e)}]"
         
-        processing_time = time.time() - start_time
-        
-        logger.info(
-            "Transcription complete",
-            extra={
-                "text_length": len(text),
-                "confidence": confidence,
-                "language": detected_language,
-                "processing_time": processing_time
-            }
-        )
-        
-        # Save debug recording
-        audio_path = save_debug_recording(audio_data, sample_rate, text)
-        
-        # Add to command buffer
-        command_buffer = get_command_buffer()
+    except Exception as e:
+        # Any other error
+        logger.error(f"Processing failed: {e}", exc_info=True)
+        has_error = True
+        error_message = str(e)
+        text = f"[Processing Error: {str(e)}]"
+    
+    # ALWAYS add to command buffer (success or failure)
+    processing_time = time.time() - start_time
+    command_buffer = get_command_buffer()
+    
+    try:
         command_buffer.add_command(
-            text=text,
+            text=text if text else "[No transcription]",
             audio_path=audio_path,
             duration=duration,
             confidence=confidence,
             processing_time=processing_time,
-            language=detected_language
+            language=detected_language,
+            has_error=has_error,
+            error_message=error_message
         )
-        
-        # Forward to ORAC Core if enabled and text is not empty
-        if forward_to_core and text.strip():
+        logger.info(f"Added {'error' if has_error else 'successful'} command to buffer")
+    except Exception as buffer_error:
+        logger.error(f"Failed to add to command buffer: {buffer_error}")
+    
+    # Forward to ORAC Core only if successful and text is not empty
+    if not has_error and forward_to_core and text.strip() and not text.startswith("["):
+        try:
             core_client = get_core_client()
             
             # Prepare metadata for Core
@@ -322,7 +363,20 @@ async def _transcribe_impl(
             )
             
             logger.info(f"Forwarded transcription to ORAC Core with topic '{topic}'")
-        
+        except Exception as forward_error:
+            logger.error(f"Failed to forward to ORAC Core: {forward_error}")
+    
+    # Return response (may have error flag but still returns data)
+    if has_error:
+        # For errors, we still return a response but with error information
+        return TranscriptionResponse(
+            text="",  # Empty text for errors
+            confidence=0.0,
+            language="unknown",
+            duration=duration,
+            processing_time=processing_time
+        )
+    else:
         return TranscriptionResponse(
             text=text,
             confidence=confidence,
@@ -330,34 +384,6 @@ async def _transcribe_impl(
             duration=duration,
             processing_time=processing_time
         )
-        
-    except AudioValidationError as e:
-        logger.warning(f"Audio validation failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Transcription failed: {e}", exc_info=True)
-        
-        # Still save the failed transcription for debugging
-        try:
-            # Save debug recording even on failure
-            audio_path = save_debug_recording(audio_data, sample_rate, f"[ERROR: {str(e)}]")
-            
-            # Add to command buffer with error information
-            command_buffer = get_command_buffer()
-            command_buffer.add_command(
-                text=f"[Transcription Error: {str(e)}]",
-                audio_path=audio_path,
-                duration=duration,
-                confidence=0.0,
-                processing_time=time.time() - start_time,
-                language="unknown",
-                has_error=True,
-                error_message=str(e)
-            )
-        except Exception as save_error:
-            logger.error(f"Failed to save error recording: {save_error}")
-        
-        raise HTTPException(status_code=500, detail="Transcription failed")
 
 
 @router.get("/health")
