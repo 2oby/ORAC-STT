@@ -25,6 +25,8 @@ class Command:
     confidence: float
     language: Optional[str]
     processing_time: float
+    has_error: bool = False
+    error_message: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -36,7 +38,9 @@ class Command:
             'duration': self.duration,
             'confidence': self.confidence,
             'language': self.language,
-            'processing_time': self.processing_time
+            'processing_time': self.processing_time,
+            'hasError': self.has_error,
+            'errorMessage': self.error_message
         }
 
 
@@ -62,7 +66,9 @@ class CommandBuffer:
         duration: float,
         confidence: float,
         processing_time: float,
-        language: Optional[str] = None
+        language: Optional[str] = None,
+        has_error: bool = False,
+        error_message: Optional[str] = None
     ) -> Command:
         """Add a new command to the buffer.
         
@@ -73,6 +79,8 @@ class CommandBuffer:
             confidence: Confidence score (0-1)
             processing_time: Time taken to process
             language: Detected language code
+            has_error: Whether transcription failed
+            error_message: Error message if transcription failed
             
         Returns:
             The created Command object
@@ -85,7 +93,9 @@ class CommandBuffer:
             duration=duration,
             confidence=confidence,
             language=language,
-            processing_time=processing_time
+            processing_time=processing_time,
+            has_error=has_error,
+            error_message=error_message
         )
         
         with self._lock:

@@ -404,8 +404,16 @@ class OracSTTAdmin {
         
         // Populate tile data
         tile.querySelector('.command-timestamp').textContent = this.formatTimestamp(command.timestamp);
-        tile.querySelector('.command-confidence').textContent = `${(command.confidence * 100).toFixed(1)}%`;
-        tile.querySelector('.command-text').textContent = command.text || '(empty)';
+        tile.querySelector('.command-confidence').textContent = command.hasError ? 'ERROR' : `${(command.confidence * 100).toFixed(1)}%`;
+        
+        // Show error message or transcribed text
+        const textElement = tile.querySelector('.command-text');
+        if (command.hasError) {
+            textElement.innerHTML = `<span style="color: #ff4444;">Error: ${command.errorMessage || 'Transcription failed'}</span><br><small style="color: #888;">Audio saved for debugging</small>`;
+        } else {
+            textElement.textContent = command.text || '(empty)';
+        }
+        
         tile.querySelector('.command-duration').textContent = `${command.duration.toFixed(1)}s`;
         
         // Set up audio player
@@ -413,11 +421,15 @@ class OracSTTAdmin {
         const playBtn = tile.querySelector('.play-btn');
         const errorBtn = tile.querySelector('.error-btn');
         
-        if (command.hasError) {
-            playBtn.style.display = 'none';
-            errorBtn.style.display = 'inline-block';
-        } else if (command.audio_path) {
+        // For errors, still allow playing the audio if available
+        if (command.audio_path) {
             audio.src = `/admin/commands/${command.id}/audio`;
+            
+            // Show play button even for errors if audio is available
+            if (command.hasError) {
+                playBtn.textContent = '▶ PLAY DEBUG AUDIO';
+                playBtn.style.backgroundColor = '#ff6600';
+            }
             
             playBtn.addEventListener('click', () => {
                 if (audio.paused) {
@@ -426,22 +438,24 @@ class OracSTTAdmin {
                         if (a !== audio) a.pause();
                     });
                     document.querySelectorAll('.play-btn').forEach(btn => {
-                        btn.textContent = '▶ PLAY';
+                        if (!btn.textContent.includes('DEBUG')) {
+                            btn.textContent = '▶ PLAY';
+                        }
                         btn.dataset.state = 'play';
                     });
                     
                     audio.play();
-                    playBtn.textContent = '⏸ PAUSE';
+                    playBtn.textContent = command.hasError ? '⏸ PAUSE DEBUG' : '⏸ PAUSE';
                     playBtn.dataset.state = 'playing';
                 } else {
                     audio.pause();
-                    playBtn.textContent = '▶ PLAY';
+                    playBtn.textContent = command.hasError ? '▶ PLAY DEBUG AUDIO' : '▶ PLAY';
                     playBtn.dataset.state = 'play';
                 }
             });
             
             audio.addEventListener('ended', () => {
-                playBtn.textContent = '▶ PLAY';
+                playBtn.textContent = command.hasError ? '▶ PLAY DEBUG AUDIO' : '▶ PLAY';
                 playBtn.dataset.state = 'play';
             });
             
@@ -450,8 +464,14 @@ class OracSTTAdmin {
                 console.log('Audio error (expected in demo)');
             });
         } else {
-            playBtn.disabled = true;
-            playBtn.textContent = 'NO AUDIO';
+            // Only show error button if there's an error AND no audio
+            if (command.hasError) {
+                playBtn.style.display = 'none';
+                errorBtn.style.display = 'inline-block';
+            } else {
+                playBtn.disabled = true;
+                playBtn.textContent = 'NO AUDIO';
+            }
         }
         
         // Add to DOM

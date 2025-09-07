@@ -336,6 +336,27 @@ async def _transcribe_impl(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Transcription failed: {e}", exc_info=True)
+        
+        # Still save the failed transcription for debugging
+        try:
+            # Save debug recording even on failure
+            audio_path = save_debug_recording(audio_data, sample_rate, f"[ERROR: {str(e)}]")
+            
+            # Add to command buffer with error information
+            command_buffer = get_command_buffer()
+            command_buffer.add_command(
+                text=f"[Transcription Error: {str(e)}]",
+                audio_path=audio_path,
+                duration=duration,
+                confidence=0.0,
+                processing_time=time.time() - start_time,
+                language="unknown",
+                has_error=True,
+                error_message=str(e)
+            )
+        except Exception as save_error:
+            logger.error(f"Failed to save error recording: {save_error}")
+        
         raise HTTPException(status_code=500, detail="Transcription failed")
 
 
