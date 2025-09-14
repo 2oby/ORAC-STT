@@ -1,0 +1,77 @@
+# ORAC STT Service Dockerfile - Fixed version
+FROM nvidia/cuda:12.6.0-runtime-ubuntu22.04
+
+# Set environment variables
+ENV CUDA_VISIBLE_DEVICES=0
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/usr/local/bin:${PATH}"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3.10-dev \
+    python3-pip \
+    curl \
+    libsndfile1 \
+    ffmpeg \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure pip is up to date
+RUN python3.10 -m pip install --upgrade pip setuptools wheel
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install ALL Python dependencies explicitly with python3.10
+# Split into groups to ensure proper installation
+RUN python3.10 -m pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pydantic==2.5.0 \
+    pydantic-settings==2.1.0
+
+RUN python3.10 -m pip install --no-cache-dir \
+    toml==0.10.2 \
+    tomli==2.0.1 \
+    PyYAML==6.0.1 \
+    python-multipart==0.0.6
+
+RUN python3.10 -m pip install --no-cache-dir \
+    prometheus-client==0.19.0 \
+    aiohttp==3.9.1
+
+RUN python3.10 -m pip install --no-cache-dir \
+    numpy==1.24.3 \
+    scipy==1.11.4 \
+    librosa==0.10.1 \
+    soundfile==0.12.1
+
+# Verify critical packages are installed
+RUN python3.10 -c "import uvicorn; print('uvicorn installed:', uvicorn.__version__)"
+RUN python3.10 -c "import fastapi; print('fastapi installed:', fastapi.__version__)"
+RUN python3.10 -c "import pydantic; print('pydantic installed:', pydantic.__version__)"
+
+# Copy application code
+COPY src/ ./src/
+COPY config.toml.example ./config.toml
+
+# Create necessary directories
+RUN mkdir -p /app/models /app/logs /app/certs /app/third_party/whisper_cpp
+
+# Set library path for whisper.cpp (will be mounted at runtime)
+ENV LD_LIBRARY_PATH="/app/third_party/whisper_cpp/lib:${LD_LIBRARY_PATH}"
+
+# Expose port
+EXPOSE 7272
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:7272/health || exit 1
+
+# Use python3.10 explicitly in CMD
+CMD ["/usr/bin/python3.10", "-m", "src.orac_stt.main"]
