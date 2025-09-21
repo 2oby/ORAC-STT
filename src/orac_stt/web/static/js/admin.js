@@ -731,7 +731,10 @@ class OracSTTAdmin {
             console.error('Topics container not found');
             return;
         }
-        
+
+        console.log('Topics container:', this.topicsContainer);
+        console.log('Current children:', this.topicsContainer.children.length);
+
         if (!topics || topics.length === 0) {
             console.log('No topics to display');
             // Only clear if there are currently cards shown
@@ -741,7 +744,7 @@ class OracSTTAdmin {
             }
             return;
         }
-        
+
         console.log(`Rendering ${topics.length} topics`);
         
         // Sort topics by activity (active first)
@@ -809,16 +812,25 @@ class OracSTTAdmin {
                 }
             } else {
                 // Create new card
+                console.log('Creating new card for topic:', topic.name);
                 const card = this.createTopicCard(topic);
+                console.log('Created card element:', card);
+
+                if (!card) {
+                    console.error('Failed to create card for topic:', topic.name);
+                    return;
+                }
+
                 card.classList.add('new');
-                
+
                 // Insert at correct position
                 if (index < this.topicsContainer.children.length) {
                     this.topicsContainer.insertBefore(card, this.topicsContainer.children[index]);
                 } else {
                     this.topicsContainer.appendChild(card);
                 }
-                
+                console.log('Card appended to container');
+
                 // Remove 'new' class after animation
                 setTimeout(() => {
                     card.classList.remove('new');
