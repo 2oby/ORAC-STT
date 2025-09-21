@@ -86,7 +86,7 @@ class ORACCoreClient:
                     logger.error(f"ORAC Core returned {response.status}: {error_text}")
                     return None
                     
-        except aiohttp.ClientTimeout:
+        except asyncio.TimeoutError:
             logger.error(f"Timeout forwarding to ORAC Core (topic: {topic})")
             return None
         except aiohttp.ClientError as e:
@@ -127,7 +127,7 @@ class ORACCoreClient:
                     logger.error(f"ORAC Core heartbeat returned {response.status}: {error_text}")
                     return None
                     
-        except aiohttp.ClientTimeout:
+        except asyncio.TimeoutError:
             logger.error("Timeout forwarding heartbeat to ORAC Core")
             return None
         except aiohttp.ClientError as e:
