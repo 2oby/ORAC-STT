@@ -712,10 +712,13 @@ class OracSTTAdmin {
     // Topic Management Methods
     async loadTopics() {
         try {
+            console.log('Loading topics from /admin/topics...');
             const response = await fetch('/admin/topics');
+            console.log('Topics response status:', response.status);
             if (!response.ok) throw new Error('Failed to load topics');
-            
+
             const topics = await response.json();
+            console.log('Topics loaded:', topics);
             this.renderTopics(topics);
         } catch (error) {
             console.error('Error loading topics:', error);

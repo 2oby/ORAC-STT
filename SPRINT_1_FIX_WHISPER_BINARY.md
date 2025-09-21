@@ -10,19 +10,20 @@ Error: Whisper binary not found at /app/models/whisper_cpp/whisper_cpp/bin/whisp
 
 **Status:** FIXED - The deployment script now ensures the binary exists in the correct location.
 
-### 2. Heartbeat Communication Issue (🔧 IN PROGRESS)
+### 2. Heartbeat Communication Issue (✅ FIXED)
 The heartbeat system between Hey ORAC → ORAC STT → ORAC Core has issues:
 
 **Current Status:**
 - ✅ ORAC STT successfully forwards heartbeats to ORAC Core
 - ✅ ORAC Core shows active topics (visible at http://192.168.8.192:8000)
-- ❌ ORAC STT admin interface doesn't show topics (http://192.168.8.192:7272/admin/)
-- ❓ Possible issue: Hey ORAC may be using wrong IP (192.168.8.191 vs 192.168.8.192)
+- ✅ ORAC STT admin interface now shows topics (http://192.168.8.192:7272/admin/)
+- ✅ Fixed datetime parsing issue in topic_registry.py
 
-**Error Log:**
-```
-{"timestamp": "2025-09-21T17:23:53.887558", "level": "ERROR", "logger": "src.orac_stt.core.topic_registry", "message": "Failed to load topics: fromisoformat: argument must be str", "module": "topic_registry", "function": "load", "line": 214}
-```
+**Error Fixed:**
+The error `"Failed to load topics: fromisoformat: argument must be str"` was caused by inconsistent datetime serialization in the YAML file. Fixed by:
+1. Ensuring `save()` method explicitly converts datetime to ISO format strings
+2. Adding type checking in `load()` method to handle both string and datetime objects
+3. Topics now persist and load correctly across container restarts
 
 ## Root Cause
 1. The Whisper binary is compiled on the host machine (Orin) at `/home/toby/orac-stt/models/whisper_cpp/`
