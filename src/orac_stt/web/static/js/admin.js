@@ -10,7 +10,13 @@ class OracSTTAdmin {
         this.topics = new Map();
         this.topicRefreshInterval = null;
         this.currentTopicForSettings = null;
-        
+
+        // Backend manager
+        this.backendManager = null;
+
+        // Current screen
+        this.currentScreen = 'main';
+
         // DOM elements
         this.connectionStatus = document.getElementById('connectionStatus');
         this.connectionText = document.getElementById('connectionText');
@@ -22,35 +28,41 @@ class OracSTTAdmin {
         this.topicsContainer = document.getElementById('topicsContainer');
         this.topicCardTemplate = document.getElementById('topicCardTemplate');
         this.topicSettingsModal = document.getElementById('topicSettingsModal');
-        
+
         // Initialize
         this.init();
-        
+
         // Set up scrollbar
         this.setupScrollbar();
     }
     
     async init() {
+        // Initialize backend manager
+        if (window.BackendManager) {
+            this.backendManager = new window.BackendManager(this);
+            await this.backendManager.init();
+        }
+
         // Add mock data for demonstration
         this.addMockData();
-        
+
         // Set initial disconnected state
         this.updateConnectionStatus(false);
-        
+
         // Load initial data
         await this.loadModels();
         await this.loadRecentCommands();
         await this.loadTopics();
-        
+
         // Set up WebSocket connection
         this.connectWebSocket();
-        
+
         // Set up event listeners
         this.setupEventListeners();
-        
+
         // Start cleanup interval for old commands
         this.startCleanupInterval();
-        
+
         // Start topic refresh interval
         this.startTopicRefreshInterval();
     }
@@ -1207,6 +1219,157 @@ class OracSTTAdmin {
             statusEl.textContent = '❌ Failed to save configuration';
             statusEl.className = 'config-status status-error';
             console.error('Failed to save config:', error);
+        }
+    }
+
+    // Navigation functions
+    showMainScreen() {
+        this.switchScreen('main');
+    }
+
+    showTopicsScreen() {
+        this.switchScreen('topics');
+    }
+
+    showBackendsScreen() {
+        this.switchScreen('backends');
+    }
+
+    switchScreen(screen) {
+        // Update current screen
+        this.currentScreen = screen;
+
+        // Hide all screens
+        document.getElementById('mainScreen').style.display = 'none';
+        document.getElementById('topicsScreen').style.display = 'none';
+        document.getElementById('backendsScreen').style.display = 'none';
+
+        // Update navigation buttons
+        document.getElementById('btnMain').classList.remove('active');
+        document.getElementById('btnTopics').classList.remove('active');
+        document.getElementById('btnBackends').classList.remove('active');
+
+        // Show selected screen
+        switch (screen) {
+            case 'main':
+                document.getElementById('mainScreen').style.display = 'block';
+                document.getElementById('btnMain').classList.add('active');
+                break;
+            case 'topics':
+                document.getElementById('topicsScreen').style.display = 'block';
+                document.getElementById('btnTopics').classList.add('active');
+                break;
+            case 'backends':
+                document.getElementById('backendsScreen').style.display = 'block';
+                document.getElementById('btnBackends').classList.add('active');
+                // Reload backends when showing the screen
+                if (this.backendManager) {
+                    this.backendManager.loadBackends();
+                }
+                break;
+        }
+    }
+
+    // Backend management functions (delegate to backend manager)
+    showAddBackendModal() {
+        if (this.backendManager) {
+            this.backendManager.showAddBackendModal();
+        }
+    }
+
+    closeAddBackendModal() {
+        if (this.backendManager) {
+            this.backendManager.closeAddBackendModal();
+        }
+    }
+
+    testBackendConnection() {
+        if (this.backendManager) {
+            this.backendManager.testBackendConnection();
+        }
+    }
+
+    saveBackend() {
+        if (this.backendManager) {
+            this.backendManager.saveBackend();
+        }
+    }
+
+    testBackend(button) {
+        if (this.backendManager) {
+            this.backendManager.testBackend(button);
+        }
+    }
+
+    configureEntities(button) {
+        if (this.backendManager) {
+            this.backendManager.configureEntities(button);
+        }
+    }
+
+    deleteBackend(button) {
+        if (this.backendManager) {
+            this.backendManager.deleteBackend(button);
+        }
+    }
+
+    closeEntityConfigModal() {
+        if (this.backendManager) {
+            this.backendManager.closeEntityConfigModal();
+        }
+    }
+
+    fetchEntities() {
+        if (this.backendManager) {
+            this.backendManager.fetchEntities();
+        }
+    }
+
+    selectAllEntities() {
+        if (this.backendManager) {
+            this.backendManager.selectAllEntities();
+        }
+    }
+
+    clearAllEntities() {
+        if (this.backendManager) {
+            this.backendManager.clearAllEntities();
+        }
+    }
+
+    saveEntityConfig() {
+        if (this.backendManager) {
+            this.backendManager.saveEntityConfig();
+        }
+    }
+
+    toggleEntity(checkbox) {
+        if (this.backendManager) {
+            this.backendManager.toggleEntity(checkbox);
+        }
+    }
+
+    showEntitySettings(button) {
+        if (this.backendManager) {
+            this.backendManager.showEntitySettings(button);
+        }
+    }
+
+    closeEntitySettingsModal() {
+        if (this.backendManager) {
+            this.backendManager.closeEntitySettingsModal();
+        }
+    }
+
+    addAliasInput() {
+        if (this.backendManager) {
+            this.backendManager.addAliasInput();
+        }
+    }
+
+    saveEntitySettings() {
+        if (this.backendManager) {
+            this.backendManager.saveEntitySettings();
         }
     }
 }

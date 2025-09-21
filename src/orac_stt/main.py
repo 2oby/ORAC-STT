@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from .config.loader import load_config
 from .config.settings import Settings
 from .utils.logging import setup_logging, get_logger
-from .api import health, metrics, stt, admin, topics
+from .api import health, metrics, stt, admin, topics, backends
 from .core.shutdown import shutdown_handler
 
 
@@ -78,6 +78,7 @@ def create_app(config_path: Optional[Path] = None) -> FastAPI:
     app.include_router(stt.router, prefix="/stt/v1", tags=["stt"])
     app.include_router(admin.router, prefix="/admin", tags=["admin"])
     app.include_router(topics.router, tags=["topics"])
+    app.include_router(backends.router, tags=["backends"])
     
     # Mount static files
     static_dir = Path(__file__).parent / "web" / "static"

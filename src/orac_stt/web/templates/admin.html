@@ -40,27 +40,80 @@
             </div>
         </div>
 
-        <!-- Topic Cards -->
-        <div class="topics-section" id="topicsSection">
-            <div class="topics-header">
-                <span class="topics-label">TOPICS:</span>
-            </div>
-            <div class="topics-container" id="topicsContainer">
-                <!-- Topic cards will be dynamically inserted here -->
-            </div>
-            <div class="topics-separator"></div>
+        <!-- Navigation Buttons -->
+        <div class="navigation-section">
+            <button class="nav-button active" id="btnMain" onclick="window.oracAdmin.showMainScreen()">
+                <span class="nav-icon">⬢</span>
+                MAIN
+            </button>
+            <button class="nav-button" id="btnTopics" onclick="window.oracAdmin.showTopicsScreen()">
+                <span class="nav-icon">◆</span>
+                TOPICS
+            </button>
+            <button class="nav-button" id="btnBackends" onclick="window.oracAdmin.showBackendsScreen()">
+                <span class="nav-icon">⬡</span>
+                BACKENDS
+            </button>
         </div>
 
-        <!-- Commands Grid -->
-        <div id="commandsContainer">
-            <div class="commands-grid" id="commandsGrid">
-                <!-- Command tiles will be dynamically inserted here -->
+        <!-- Main Screen -->
+        <div id="mainScreen" class="screen-content">
+            <!-- Topic Cards -->
+            <div class="topics-section" id="topicsSection">
+                <div class="topics-header">
+                    <span class="topics-label">TOPICS:</span>
+                </div>
+                <div class="topics-container" id="topicsContainer">
+                    <!-- Topic cards will be dynamically inserted here -->
+                </div>
+                <div class="topics-separator"></div>
             </div>
-            
-            <!-- Empty State -->
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <h3>No Commands Yet</h3>
-                <p>Transcribed commands will appear here</p>
+
+            <!-- Commands Grid -->
+            <div id="commandsContainer">
+                <div class="commands-grid" id="commandsGrid">
+                    <!-- Command tiles will be dynamically inserted here -->
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <h3>No Commands Yet</h3>
+                    <p>Transcribed commands will appear here</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topics Screen -->
+        <div id="topicsScreen" class="screen-content" style="display: none;">
+            <div class="screen-header">
+                <h2>TOPIC MANAGEMENT</h2>
+                <p>Configure and manage ORAC topics and their associated backends</p>
+            </div>
+            <div class="topics-manager">
+                <!-- Topics management content will go here -->
+            </div>
+        </div>
+
+        <!-- Backends Screen -->
+        <div id="backendsScreen" class="screen-content" style="display: none;">
+            <div class="screen-header">
+                <h2>BACKEND CONFIGURATION</h2>
+                <p>Connect to Home Assistant and other smart home systems</p>
+            </div>
+            <div class="backends-toolbar">
+                <button class="btn btn-primary" onclick="window.oracAdmin.showAddBackendModal()">
+                    <span class="btn-icon">+</span> ADD NEW BACKEND
+                </button>
+            </div>
+            <div id="backendsList" class="backends-list">
+                <!-- Backend cards will be dynamically inserted here -->
+            </div>
+            <div class="empty-state" id="backendsEmptyState">
+                <h3>No Backends Configured</h3>
+                <p>Add a backend to start importing entities</p>
+                <button class="btn btn-primary" onclick="window.oracAdmin.showAddBackendModal()">
+                    <span class="btn-icon">+</span> ADD BACKEND
+                </button>
             </div>
         </div>
     </div>
@@ -157,11 +210,219 @@
         </div>
     </div>
     
+    <!-- Add Backend Modal -->
+    <div id="addBackendModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>ADD NEW BACKEND</h3>
+                <button class="modal-close" onclick="window.oracAdmin.closeAddBackendModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="backendName">BACKEND NAME:</label>
+                    <input type="text" id="backendName" class="form-input" placeholder="Home Assistant Main">
+                </div>
+                <div class="form-group">
+                    <label for="backendType">BACKEND TYPE:</label>
+                    <select id="backendType" class="form-input">
+                        <option value="homeassistant">Home Assistant</option>
+                    </select>
+                </div>
+                <div class="form-section">
+                    <h4>CONNECTION DETAILS</h4>
+                    <div class="form-group">
+                        <label for="backendUrl">URL/HOST:</label>
+                        <input type="text" id="backendUrl" class="form-input" placeholder="http://192.168.1.100">
+                        <small>e.g., http://192.168.1.100</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="backendPort">PORT:</label>
+                        <input type="number" id="backendPort" class="form-input" placeholder="8123" value="8123">
+                        <small>e.g., 8123</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="backendToken">API TOKEN:</label>
+                        <input type="password" id="backendToken" class="form-input" placeholder="Long-lived access token">
+                        <small>Long-lived access token from Home Assistant</small>
+                    </div>
+                </div>
+                <div class="connection-status" id="connectionTestStatus" style="display: none;">
+                    <!-- Connection test results will appear here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-test" onclick="window.oracAdmin.testBackendConnection()">
+                    TEST CONNECTION
+                </button>
+                <button class="btn btn-cancel" onclick="window.oracAdmin.closeAddBackendModal()">
+                    CANCEL
+                </button>
+                <button class="btn btn-save" id="saveBackendBtn" onclick="window.oracAdmin.saveBackend()" disabled>
+                    SAVE & NEXT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entity Configuration Modal -->
+    <div id="entityConfigModal" class="modal" style="display: none;">
+        <div class="modal-content modal-xlarge">
+            <div class="modal-header">
+                <h3>CONFIGURE ENTITIES: <span id="entityConfigBackendName"></span></h3>
+                <button class="modal-close" onclick="window.oracAdmin.closeEntityConfigModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="entity-toolbar">
+                    <button class="btn btn-secondary" onclick="window.oracAdmin.fetchEntities()">
+                        FETCH ENTITIES
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.oracAdmin.selectAllEntities()">
+                        SELECT ALL
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.oracAdmin.clearAllEntities()">
+                        CLEAR ALL
+                    </button>
+                    <button class="btn btn-primary" onclick="window.oracAdmin.saveEntityConfig()">
+                        SAVE CONFIG
+                    </button>
+                </div>
+                <div class="entity-search">
+                    <input type="text" id="entitySearch" class="form-input search-input" placeholder="🔍 Search entities...">
+                    <select id="entityTypeFilter" class="form-input filter-select">
+                        <option value="">All Types</option>
+                        <option value="light">Lights</option>
+                        <option value="switch">Switches</option>
+                        <option value="climate">Climate</option>
+                        <option value="scene">Scenes</option>
+                        <option value="sensor">Sensors</option>
+                    </select>
+                </div>
+                <div class="entity-stats">
+                    Discovered: <span id="totalEntities">0</span> entities |
+                    Enabled: <span id="enabledEntities">0</span> |
+                    Configured: <span id="configuredEntities">0</span>
+                </div>
+                <div id="entitiesList" class="entities-list">
+                    <!-- Entity cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entity Settings Modal -->
+    <div id="entitySettingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>CONFIGURE ENTITY: <span id="entitySettingsId"></span></h3>
+                <button class="modal-close" onclick="window.oracAdmin.closeEntitySettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>ENTITY ID:</label>
+                    <input type="text" id="entityId" class="form-input readonly" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="entityFriendlyName">FRIENDLY NAME:</label>
+                    <input type="text" id="entityFriendlyName" class="form-input" placeholder="Living Room Main Light">
+                    <small>Used for voice commands</small>
+                </div>
+                <div class="form-group">
+                    <label>ALIASES:</label>
+                    <div id="entityAliases" class="aliases-container">
+                        <!-- Alias inputs will be dynamically added here -->
+                    </div>
+                    <button class="btn btn-secondary btn-small" onclick="window.oracAdmin.addAliasInput()">
+                        + Add Alias
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="entityEnabled">
+                        ENABLED - Include in voice control
+                    </label>
+                </div>
+                <div class="form-section">
+                    <h4>ADVANCED</h4>
+                    <div class="form-group">
+                        <label for="entityPriority">Priority:</label>
+                        <input type="number" id="entityPriority" class="form-input" min="1" max="10" value="5">
+                        <small>(1-10, higher = preferred)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="entityRoom">Room Override:</label>
+                        <input type="text" id="entityRoom" class="form-input" placeholder="Optional">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="window.oracAdmin.closeEntitySettingsModal()">
+                    CANCEL
+                </button>
+                <button class="btn btn-save" onclick="window.oracAdmin.saveEntitySettings()">
+                    SAVE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backend Card Template -->
+    <template id="backendCardTemplate">
+        <div class="backend-card" data-backend-id="">
+            <div class="backend-status-indicator"></div>
+            <div class="backend-header">
+                <h3 class="backend-name"></h3>
+                <span class="backend-type">Home Assistant</span>
+            </div>
+            <div class="backend-info">
+                <div class="backend-url"></div>
+                <div class="backend-stats">
+                    <span class="stat-item">Entities: <span class="entity-count">0</span></span>
+                    <span class="stat-item">Enabled: <span class="enabled-count">0</span></span>
+                </div>
+            </div>
+            <div class="backend-actions">
+                <button class="btn btn-secondary btn-small" onclick="window.oracAdmin.testBackend(this)">
+                    TEST
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="window.oracAdmin.configureEntities(this)">
+                    CONFIGURE
+                </button>
+                <button class="btn btn-danger btn-small" onclick="window.oracAdmin.deleteBackend(this)">
+                    DELETE
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Entity Card Template -->
+    <template id="entityCardTemplate">
+        <div class="entity-card" data-entity-id="">
+            <div class="entity-checkbox">
+                <input type="checkbox" class="entity-enable-checkbox" onchange="window.oracAdmin.toggleEntity(this)">
+            </div>
+            <div class="entity-icon"></div>
+            <div class="entity-details">
+                <div class="entity-id"></div>
+                <div class="entity-info">
+                    <span class="entity-type"></span>
+                    <span class="entity-area"></span>
+                </div>
+                <div class="entity-state"></div>
+                <div class="entity-friendly-name">
+                    <label>Friendly Name:</label>
+                    <input type="text" class="entity-name-input" placeholder="Not configured">
+                </div>
+            </div>
+            <button class="entity-settings-btn" onclick="window.oracAdmin.showEntitySettings(this)" title="Settings">⚙️</button>
+        </div>
+    </template>
+
     <!-- Scrollbar indicator -->
     <div class="scrollbar-track">
         <div class="scrollbar-thumb"></div>
     </div>
 
+    <script src="/static/js/backends.js"></script>
     <script src="/static/js/admin.js"></script>
 </body>
 </html>
