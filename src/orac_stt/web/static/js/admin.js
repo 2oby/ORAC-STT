@@ -712,13 +712,10 @@ class OracSTTAdmin {
     // Topic Management Methods
     async loadTopics() {
         try {
-            console.log('Loading topics from /admin/topics...');
             const response = await fetch('/admin/topics');
-            console.log('Topics response status:', response.status);
             if (!response.ok) throw new Error('Failed to load topics');
 
             const topics = await response.json();
-            console.log('Topics loaded:', topics);
             this.renderTopics(topics);
         } catch (error) {
             console.error('Error loading topics:', error);
@@ -732,11 +729,7 @@ class OracSTTAdmin {
             return;
         }
 
-        console.log('Topics container:', this.topicsContainer);
-        console.log('Current children:', this.topicsContainer.children.length);
-
         if (!topics || topics.length === 0) {
-            console.log('No topics to display');
             // Only clear if there are currently cards shown
             if (this.topicsContainer.children.length > 0) {
                 this.topicsContainer.innerHTML = '';
@@ -744,8 +737,6 @@ class OracSTTAdmin {
             }
             return;
         }
-
-        console.log(`Rendering ${topics.length} topics`);
         
         // Sort topics by activity (active first)
         topics.sort((a, b) => {
@@ -812,15 +803,7 @@ class OracSTTAdmin {
                 }
             } else {
                 // Create new card
-                console.log('Creating new card for topic:', topic.name);
                 const card = this.createTopicCard(topic);
-                console.log('Created card element:', card);
-
-                if (!card) {
-                    console.error('Failed to create card for topic:', topic.name);
-                    return;
-                }
-
                 card.classList.add('new');
 
                 // Insert at correct position
@@ -829,7 +812,6 @@ class OracSTTAdmin {
                 } else {
                     this.topicsContainer.appendChild(card);
                 }
-                console.log('Card appended to container');
 
                 // Remove 'new' class after animation
                 setTimeout(() => {
