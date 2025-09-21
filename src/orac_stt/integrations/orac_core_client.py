@@ -1,5 +1,6 @@
 """ORAC Core integration client for forwarding transcriptions with topic support."""
 
+import asyncio
 import aiohttp
 from typing import Optional, Dict, Any
 import logging
