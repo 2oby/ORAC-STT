@@ -63,14 +63,42 @@ ssh ${ORIN_HOST} "
 echo "🛠️ Building whisper.cpp on Jetson..."
 ssh ${ORIN_HOST} "
     cd ${REMOTE_DIR}
+
+    # Ensure the expected directory structure exists
+    echo '📦 Ensuring Whisper binary directory structure...'
+    mkdir -p models/whisper_cpp/whisper_cpp/bin/
+
+    # Build whisper.cpp if not already built
     if [ ! -f third_party/whisper_cpp/bin/whisper-cli ]; then
         echo 'Building whisper.cpp for the first time...'
         chmod +x third_party/whisper_cpp/build_whisper_cpp.sh
         cd third_party/whisper_cpp && ./build_whisper_cpp.sh
+        cd ${REMOTE_DIR}
     else
         echo 'whisper.cpp already built'
     fi
-    
+
+    # Copy the binary to the expected container location
+    if [ -f third_party/whisper_cpp/bin/whisper-cli ]; then
+        echo 'Copying Whisper binary to expected location...'
+        cp third_party/whisper_cpp/bin/whisper-cli models/whisper_cpp/whisper_cpp/bin/
+        echo 'Whisper binary copied successfully'
+    elif [ -f third_party/whisper_cpp/whisper.cpp/build/bin/whisper-cli ]; then
+        echo 'Copying Whisper binary from build directory...'
+        cp third_party/whisper_cpp/whisper.cpp/build/bin/whisper-cli models/whisper_cpp/whisper_cpp/bin/
+        echo 'Whisper binary copied successfully'
+    else
+        echo 'Warning: Could not find whisper-cli binary to copy'
+    fi
+
+    # Verify the binary exists in the expected location
+    if [ -f models/whisper_cpp/whisper_cpp/bin/whisper-cli ]; then
+        echo '✅ Whisper binary is in the expected location'
+        ls -la models/whisper_cpp/whisper_cpp/bin/whisper-cli
+    else
+        echo '❌ Warning: Whisper binary not found at expected location'
+    fi
+
     # Copy shared libraries if not already done
     if [ ! -d third_party/whisper_cpp/lib ]; then
         echo 'Copying whisper.cpp shared libraries...'
