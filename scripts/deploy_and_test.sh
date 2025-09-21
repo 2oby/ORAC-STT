@@ -66,7 +66,8 @@ ssh ${ORIN_HOST} "
 
     # Ensure the expected directory structure exists
     echo '📦 Ensuring Whisper binary directory structure...'
-    mkdir -p models/whisper_cpp/whisper_cpp/bin/
+    sudo mkdir -p models/whisper_cpp/whisper_cpp/bin/
+    sudo chown -R ${ORIN_USER}:${ORIN_USER} models/whisper_cpp/
 
     # Build whisper.cpp if not already built
     if [ ! -f third_party/whisper_cpp/bin/whisper-cli ]; then
