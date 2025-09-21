@@ -1,12 +1,28 @@
-# Sprint 1: Fix Whisper Binary Deployment Issue
+# Sprint 1: Fix Whisper Binary Deployment Issue & Heartbeat System
 
-## Problem
-When redeploying ORAC STT on the Orin, the container fails with:
+## Problems Addressed
+
+### 1. Whisper Binary Issue (✅ FIXED)
+When redeploying ORAC STT on the Orin, the container was failing with:
 ```
 Error: Whisper binary not found at /app/models/whisper_cpp/whisper_cpp/bin/whisper-cli
 ```
 
-This happens because the Whisper binary is built on the host but not properly mounted or available in the container.
+**Status:** FIXED - The deployment script now ensures the binary exists in the correct location.
+
+### 2. Heartbeat Communication Issue (🔧 IN PROGRESS)
+The heartbeat system between Hey ORAC → ORAC STT → ORAC Core has issues:
+
+**Current Status:**
+- ✅ ORAC STT successfully forwards heartbeats to ORAC Core
+- ✅ ORAC Core shows active topics (visible at http://192.168.8.192:8000)
+- ❌ ORAC STT admin interface doesn't show topics (http://192.168.8.192:7272/admin/)
+- ❓ Possible issue: Hey ORAC may be using wrong IP (192.168.8.191 vs 192.168.8.192)
+
+**Error Log:**
+```
+{"timestamp": "2025-09-21T17:23:53.887558", "level": "ERROR", "logger": "src.orac_stt.core.topic_registry", "message": "Failed to load topics: fromisoformat: argument must be str", "module": "topic_registry", "function": "load", "line": 214}
+```
 
 ## Root Cause
 1. The Whisper binary is compiled on the host machine (Orin) at `/home/toby/orac-stt/models/whisper_cpp/`
@@ -59,6 +75,33 @@ ssh orin4 "cd /home/toby/orac-stt && \
 docker build -t orac-stt:fixed -f Dockerfile.fixed .
 docker run -d --name orac-stt ... orac-stt:fixed
 ```
+
+## Debugging Steps for Heartbeat Issue
+
+### Check Hey ORAC Configuration
+1. **On Raspberry Pi (Hey ORAC):**
+```bash
+# Check what IP Hey ORAC is using for ORAC STT
+docker exec hey-orac env | grep -i orac
+# or check config file
+docker exec hey-orac cat /app/config.yaml | grep -i stt
+```
+
+2. **Verify Network Path:**
+- Hey ORAC (Pi) should connect to ORAC STT at: `http://192.168.8.192:7272`
+- ORAC STT (Orin) should connect to ORAC Core at: `http://192.168.8.192:8000`
+
+### Current Configuration Issues Found:
+1. **IP Address Confusion:** System was using 192.168.8.191 instead of 192.168.8.192
+2. **Docker Networking:** Containers on same host need proper addressing:
+   - Initially tried `localhost:8000` - failed (different containers)
+   - Then tried `172.18.0.2:8000` - failed (different networks)
+   - Finally used `192.168.8.192:8000` - works
+
+3. **Exception Handling Bug:**
+   - Fixed `aiohttp.ClientTimeout` → `asyncio.TimeoutError`
+   - Fixed bare `except:` → `except Exception:`
+   - Added missing `import asyncio`
 
 ## Testing
 After applying the fix, verify:

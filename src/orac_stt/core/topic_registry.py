@@ -179,7 +179,10 @@ class TopicRegistry:
             with self._lock:
                 data = {
                     "topics": [
-                        topic.dict() for topic in self.topics.values()
+                        {
+                            **topic.dict(),
+                            "last_seen": topic.last_seen.isoformat() if topic.last_seen else None
+                        } for topic in self.topics.values()
                     ]
                 }
                 
@@ -204,7 +207,12 @@ class TopicRegistry:
             for topic_data in topics:
                 # Convert ISO format strings back to datetime
                 if topic_data.get("last_seen"):
-                    topic_data["last_seen"] = datetime.fromisoformat(topic_data["last_seen"])
+                    last_seen = topic_data["last_seen"]
+                    if isinstance(last_seen, str):
+                        topic_data["last_seen"] = datetime.fromisoformat(last_seen)
+                    elif not isinstance(last_seen, datetime):
+                        # Handle other potential formats (e.g., from YAML datetime parsing)
+                        topic_data["last_seen"] = datetime.fromisoformat(str(last_seen))
                 
                 topic = TopicConfig(**topic_data)
                 self.topics[topic.name] = topic
