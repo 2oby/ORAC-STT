@@ -188,7 +188,7 @@ def get_orac_core_client() -> ORACCoreClient:
             from ..core.settings_manager import get_settings_manager
             settings_mgr = get_settings_manager()
             base_url = settings_mgr.get('orac_core_url', "http://192.168.8.192:8000")
-        except:
+        except Exception:
             base_url = "http://192.168.8.192:8000"
         
         _orac_core_client = ORACCoreClient(base_url=base_url)
