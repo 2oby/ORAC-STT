@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 import numpy as np
 
 from ..config.settings import Settings
-from ..config.loader import load_config
 from ..audio.processor import AudioProcessor
 from ..audio.validator import AudioValidationError
 from ..models.unified_loader import UnifiedWhisperLoader
@@ -23,18 +22,10 @@ from ..history.command_buffer import CommandBuffer
 from ..integrations.orac_core_client import ORACCoreClient
 from ..models.heartbeat import HeartbeatRequest, HeartbeatResponse
 from ..core.heartbeat_manager import get_heartbeat_manager
+from ..dependencies import get_model_loader, get_command_buffer, get_core_client
 
 router = APIRouter()
 logger = get_logger(__name__)
-
-# Global model loader instance
-_model_loader: Optional[UnifiedWhisperLoader] = None
-
-# Global command buffer instance
-_command_buffer: Optional[CommandBuffer] = None
-
-# Global ORAC Core client instance
-_core_client: Optional[ORACCoreClient] = None
 
 # Debug recording settings
 DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
@@ -54,43 +45,6 @@ class TranscriptionRequest(BaseModel):
     """STT transcription request options."""
     language: Optional[str] = Field(None, description="Language code (e.g., 'en', 'es')")
     task: str = Field("transcribe", description="Task type: transcribe or translate")
-
-
-def get_model_loader() -> UnifiedWhisperLoader:
-    """Get or create model loader instance."""
-    global _model_loader
-    
-    if _model_loader is None:
-        settings = load_config()
-        _model_loader = UnifiedWhisperLoader(settings.model)
-        logger.info("Initialized model loader")
-    
-    return _model_loader
-
-
-def get_command_buffer() -> CommandBuffer:
-    """Get or create command buffer instance."""
-    global _command_buffer
-    
-    if _command_buffer is None:
-        _command_buffer = CommandBuffer(max_size=5)
-        logger.info("Initialized command buffer")
-    
-    return _command_buffer
-
-
-def get_core_client() -> ORACCoreClient:
-    """Get or create ORAC Core client instance."""
-    global _core_client
-    
-    if _core_client is None:
-        settings = load_config()
-        # Use ORAC Core URL from config or default
-        core_url = getattr(settings, 'orac_core_url', 'http://192.168.8.192:8000')
-        _core_client = ORACCoreClient(base_url=core_url)
-        logger.info(f"Initialized ORAC Core client: {core_url}")
-    
-    return _core_client
 
 
 def init_debug_recordings():
@@ -143,25 +97,25 @@ def save_debug_recording(audio_data: np.ndarray, sample_rate: int, transcription
 async def transcribe_audio(
     audio_data: np.ndarray,
     sample_rate: int,
+    model_loader: UnifiedWhisperLoader,
     language: Optional[str] = None,
     task: str = "transcribe"
 ) -> Dict[str, Any]:
     """Transcribe audio data using the model.
-    
+
     Args:
         audio_data: Audio samples as numpy array
         sample_rate: Sample rate (must be 16000)
+        model_loader: Model loader instance (injected)
         language: Language code
         task: Task type (transcribe or translate)
-        
+
     Returns:
         Transcription results
     """
-    model_loader = get_model_loader()
-    
     # Run transcription in thread pool to avoid blocking
     loop = asyncio.get_event_loop()
-    
+
     def transcribe_sync():
         return model_loader.transcribe(
             audio_data,
@@ -169,9 +123,9 @@ async def transcribe_audio(
             language=language,
             task=task
         )
-    
+
     result = await loop.run_in_executor(None, transcribe_sync)
-    
+
     return result
 
 
@@ -181,20 +135,26 @@ async def transcribe_stream_with_topic(
     file: UploadFile = File(..., description="Audio file to transcribe"),
     language: Optional[str] = None,
     task: str = "transcribe",
-    forward_to_core: bool = True
+    forward_to_core: bool = True,
+    model_loader: UnifiedWhisperLoader = Depends(get_model_loader),
+    command_buffer: CommandBuffer = Depends(get_command_buffer),
+    core_client: ORACCoreClient = Depends(get_core_client)
 ) -> TranscriptionResponse:
     """Transcribe audio from uploaded file with topic support.
-    
+
     This endpoint accepts audio files, transcribes them, and optionally
     forwards the transcription to ORAC Core with the specified topic.
-    
+
     Args:
         topic: Topic ID for ORAC Core routing
         file: Audio file upload
         language: Optional language code
         task: Task type (transcribe or translate)
         forward_to_core: Whether to forward transcription to ORAC Core
-        
+        model_loader: Model loader instance (injected)
+        command_buffer: Command buffer instance (injected)
+        core_client: ORAC Core client instance (injected)
+
     Returns:
         Transcription response with text and metadata
     """
@@ -203,7 +163,10 @@ async def transcribe_stream_with_topic(
         language=language,
         task=task,
         topic=topic,
-        forward_to_core=forward_to_core
+        forward_to_core=forward_to_core,
+        model_loader=model_loader,
+        command_buffer=command_buffer,
+        core_client=core_client
     )
 
 
@@ -212,10 +175,13 @@ async def transcribe_stream(
     file: UploadFile = File(..., description="Audio file to transcribe"),
     language: Optional[str] = None,
     task: str = "transcribe",
-    forward_to_core: bool = True
+    forward_to_core: bool = True,
+    model_loader: UnifiedWhisperLoader = Depends(get_model_loader),
+    command_buffer: CommandBuffer = Depends(get_command_buffer),
+    core_client: ORACCoreClient = Depends(get_core_client)
 ) -> TranscriptionResponse:
     """Transcribe audio from uploaded file (backward compatibility).
-    
+
     Defaults to 'general' topic for backward compatibility.
     """
     return await _transcribe_impl(
@@ -223,12 +189,18 @@ async def transcribe_stream(
         language=language,
         task=task,
         topic="general",
-        forward_to_core=forward_to_core
+        forward_to_core=forward_to_core,
+        model_loader=model_loader,
+        command_buffer=command_buffer,
+        core_client=core_client
     )
 
 
 async def _transcribe_impl(
     file: UploadFile,
+    model_loader: UnifiedWhisperLoader,
+    command_buffer: CommandBuffer,
+    core_client: ORACCoreClient,
     language: Optional[str] = None,
     task: str = "transcribe",
     topic: str = "general",
@@ -279,6 +251,7 @@ async def _transcribe_impl(
             result = await transcribe_audio(
                 audio_data,
                 sample_rate,
+                model_loader,
                 language=language,
                 task=task
             )
@@ -323,8 +296,7 @@ async def _transcribe_impl(
     
     # ALWAYS add to command buffer (success or failure)
     processing_time = time.time() - start_time
-    command_buffer = get_command_buffer()
-    
+
     try:
         command_buffer.add_command(
             text=text if text else "[No transcription]",
@@ -343,8 +315,6 @@ async def _transcribe_impl(
     # Forward to ORAC Core only if successful and text is not empty
     if not has_error and forward_to_core and text.strip() and not text.startswith("["):
         try:
-            core_client = get_core_client()
-            
             # Prepare metadata for Core
             metadata = {
                 "confidence": confidence,
@@ -387,10 +357,11 @@ async def _transcribe_impl(
 
 
 @router.get("/health")
-async def stt_health() -> Dict[str, Any]:
+async def stt_health(
+    model_loader: UnifiedWhisperLoader = Depends(get_model_loader)
+) -> Dict[str, Any]:
     """Check STT endpoint health and model status."""
     try:
-        model_loader = get_model_loader()
         
         # Check if model is loaded
         model_loaded = model_loader._model is not None
@@ -411,15 +382,16 @@ async def stt_health() -> Dict[str, Any]:
 
 
 @router.post("/preload")
-async def preload_model() -> Dict[str, str]:
+async def preload_model(
+    model_loader: UnifiedWhisperLoader = Depends(get_model_loader)
+) -> Dict[str, str]:
     """Preload the model for faster first inference.
-    
+
     This endpoint can be called during startup to ensure the model
     is loaded and ready before the first transcription request.
     """
     try:
         start_time = time.time()
-        model_loader = get_model_loader()
         
         # Load model if not already loaded
         if model_loader._model is None:
