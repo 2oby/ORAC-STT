@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libsndfile1 \
     ffmpeg \
     build-essential \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Ensure pip is up to date
