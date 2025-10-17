@@ -111,39 +111,13 @@ ssh ${ORIN_HOST} "
     fi
 "
 
-# Build Docker image on Orin
-echo "🔨 Building Docker image on Orin..."
-# Use --no-cache for source code changes to ensure fresh copy
-ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker build --no-cache-filter=final -t ${PROJECT_NAME}:latest ."
-
-# Stop existing container if running
-echo "🛑 Stopping existing container..."
-ssh ${ORIN_HOST} "docker stop ${PROJECT_NAME} || true && docker rm ${PROJECT_NAME} || true"
-
 # Create required directories
 echo "📁 Creating required directories..."
-ssh ${ORIN_HOST} "mkdir -p ${REMOTE_DIR}/debug_recordings ${REMOTE_DIR}/data"
+ssh ${ORIN_HOST} "mkdir -p ${REMOTE_DIR}/debug_recordings ${REMOTE_DIR}/data ${REMOTE_DIR}/models ${REMOTE_DIR}/logs ${REMOTE_DIR}/certs"
 
-# Run container
-echo "🚀 Starting container..."
-ssh ${ORIN_HOST} "docker run -d \
-    --name ${PROJECT_NAME} \
-    --gpus all \
-    --restart unless-stopped \
-    -p 7272:7272 \
-    -v ${REMOTE_DIR}/models:/app/models \
-    -v ${REMOTE_DIR}/logs:/app/logs \
-    -v ${REMOTE_DIR}/certs:/app/certs \
-    -v ${REMOTE_DIR}/data:/app/data \
-    -v ${REMOTE_DIR}/debug_recordings:/app/debug_recordings \
-    -v ${REMOTE_DIR}/third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro \
-    -v ${REMOTE_DIR}/third_party/whisper_cpp/models:/app/models/whisper_cpp:ro \
-    -v ${REMOTE_DIR}/third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro \
-    -e ORAC_COMMAND_API_URL=http://localhost:8001/command \
-    -e ORAC_API_PORT=7272 \
-    -e USE_WHISPER_CPP=true \
-    -e LD_LIBRARY_PATH=/usr/local/lib/whisper \
-    ${PROJECT_NAME}:latest"
+# Build and start container using docker-compose
+echo "🔨 Building Docker image and starting container..."
+ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker-compose down || true && docker-compose up -d --build"
 
 # Wait for service to start
 echo "⏳ Waiting for service to start..."

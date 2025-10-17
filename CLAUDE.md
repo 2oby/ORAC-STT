@@ -20,6 +20,54 @@ Speech-to-Text service for NVIDIA Orin Nano. Accepts audio streams, transcribes 
 - **Docker**: Enabled, supports `--gpus all`
 - **User**: `toby` (deployment target: `/home/toby/orac-stt/`)
 
+## Dependencies
+
+The project uses split requirements files for better organization:
+
+- **requirements.txt** - Core production dependencies (FastAPI, audio processing, etc.)
+- **requirements-dev.txt** - Development tools (pytest, black, mypy, etc.)
+- **requirements-pytorch.txt** - Optional PyTorch backend (not needed with whisper.cpp)
+
+### Local Development Setup
+
+For local development, install both production and dev dependencies:
+
+```bash
+# Install production dependencies
+pip install -r requirements.txt
+
+# Install development tools
+pip install -r requirements-dev.txt
+
+# Optional: PyTorch backend (only if testing PyTorch support)
+pip install -r requirements-pytorch.txt
+```
+
+### Running Tests Locally
+
+Tests require dev dependencies:
+```bash
+# Install dev dependencies first
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest tests/
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+```
+
+### Code Quality Tools
+
+Dev dependencies include:
+- **pytest** - Testing framework
+- **pytest-asyncio** - Async test support
+- **pytest-cov** - Coverage reporting
+- **black** - Code formatting
+- **isort** - Import sorting
+- **mypy** - Type checking
+- **flake8** - Linting
+
 ## Development Workflow
 
 ### 1. Code � Test Cycle
@@ -33,21 +81,24 @@ cd scripts && ./deploy_and_test.sh
 ```
 
 ### 2. Deploy Script Flow (`deploy_and_test.sh`)
-1. **Sync**: `rsync` project files to `orin4:/home/toby/orac-stt/`
-2. **Build**: `docker build -t orac-stt:latest .` on Orin
-3. **Deploy**: Stop old container, start new with volume mounts
-4. **Test**: Health check, metrics validation, log inspection
-5. **Report**: Success/failure with container logs
+1. **Commit & Push**: Commits local changes and pushes to GitHub
+2. **Pull on Orin**: Pulls latest code from GitHub to Orin Nano
+3. **Build whisper.cpp**: Builds whisper.cpp if not already built (one-time)
+4. **Deploy**: Uses `docker-compose up -d --build` to build and start container
+5. **Test**: Health check, metrics validation, log inspection
+6. **Report**: Success/failure with container logs
 
 ### 3. Manual Operations
 ```bash
-# Direct Orin commands
-ssh orin4 "docker ps | grep orac-stt"
-ssh orin4 "docker logs -f orac-stt"
+# Direct Orin commands via docker-compose
+ssh orin4 "cd /home/toby/orac-stt && docker-compose ps"
+ssh orin4 "cd /home/toby/orac-stt && docker-compose logs -f"
 ssh orin4 "curl http://localhost:7272/health"
 
 # Container management
-ssh orin4 "docker stop orac-stt && docker rm orac-stt"
+ssh orin4 "cd /home/toby/orac-stt && docker-compose restart"
+ssh orin4 "cd /home/toby/orac-stt && docker-compose down"
+ssh orin4 "cd /home/toby/orac-stt && docker-compose up -d"
 ```
 
 ## Configuration
@@ -76,14 +127,14 @@ ssh orin4 "docker stop orac-stt && docker rm orac-stt"
 cd scripts && ./deploy_and_test.sh
 
 # Check logs
-ssh orin4 "docker logs --tail 20 orac-stt"
+ssh orin4 "cd /home/toby/orac-stt && docker-compose logs --tail 20"
 
 # Test endpoints
 curl -s http://orin4:7272/health | jq .
 curl -s http://orin4:7272/metrics | head -10
 
 # Force rebuild (no cache)
-ssh orin4 "cd /home/toby/orac-stt && docker build --no-cache -t orac-stt ."
+ssh orin4 "cd /home/toby/orac-stt && docker-compose build --no-cache && docker-compose up -d"
 ```
 
 ## Performance Targets

@@ -16,13 +16,14 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       # Python settings
       - PYTHONUNBUFFERED=1
-      - LD_LIBRARY_PATH=/app/third_party/whisper_cpp/lib:${LD_LIBRARY_PATH}
+      - LD_LIBRARY_PATH=/usr/local/lib/whisper
       # Service configuration
       - LOG_LEVEL=INFO
       - MODEL_NAME=whisper-tiny-int8
       - MODEL_CACHE_DIR=/app/models
-      - COMMAND_API_URL=${COMMAND_API_URL:-http://command-api:8080}
-      - API_PORT=7272
+      - ORAC_COMMAND_API_URL=http://localhost:8001/command
+      - ORAC_API_PORT=7272
+      - USE_WHISPER_CPP=true
       
     # Volume mounts - ensure proper permissions
     volumes:
@@ -30,14 +31,16 @@ services:
       - ./models:/app/models:rw
       # Certificates for mTLS
       - ./certs:/app/certs:ro
-      # Configuration
-      - ./config:/app/config:ro
       # Logs (optional, can use docker logs instead)
       - ./logs:/app/logs:rw
+      # Data directory
+      - ./data:/app/data:rw
+      # Debug recordings
+      - ./debug_recordings:/app/debug_recordings:rw
       # whisper.cpp binaries and libraries (built on Jetson)
-      # Note: When deploying to Orin, these paths will be absolute (e.g., /home/toby/orac-stt/...)
       - ./third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro
-      - ./third_party/whisper_cpp/lib:/app/third_party/whisper_cpp/lib:ro
+      - ./third_party/whisper_cpp/models:/app/models/whisper_cpp:ro
+      - ./third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro
       
     # Port mappings
     ports:

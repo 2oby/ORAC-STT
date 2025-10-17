@@ -37,6 +37,38 @@ The service uses a configuration file system with environment variable overrides
 - **Command API**: Downstream service integration
 - **Security**: TLS/mTLS certificates and settings
 
+## Dependencies
+
+The project uses split requirements files for better organization and smaller production images:
+
+- **requirements.txt** - Core production dependencies (FastAPI, audio processing, etc.)
+- **requirements-dev.txt** - Development tools (pytest, black, mypy, etc.)
+- **requirements-pytorch.txt** - Optional PyTorch backend (not needed with whisper.cpp)
+
+### Installation
+
+**Production deployment** (Docker container):
+```bash
+# Automatically installed via Dockerfile - only requirements.txt
+docker-compose up -d --build
+```
+
+**Local development**:
+```bash
+# Install production dependencies
+pip install -r requirements.txt
+
+# Install development tools
+pip install -r requirements-dev.txt
+```
+
+**Optional PyTorch backend** (not needed for whisper.cpp):
+```bash
+pip install -r requirements-pytorch.txt
+```
+
+**Note:** The default configuration uses whisper.cpp (not PyTorch), so `requirements-pytorch.txt` is not installed in production. This keeps the Docker image at ~500MB instead of 3-4GB.
+
 ## Getting Started
 
 ### End User Quick Start

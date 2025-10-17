@@ -26,35 +26,17 @@ RUN apt-get update && apt-get install -y \
 # Ensure pip is up to date
 RUN python3.10 -m pip install --upgrade pip setuptools wheel
 
-# Copy requirements first for better caching
+# Install production dependencies only
+# - requirements.txt: Core dependencies (FastAPI, audio processing, etc.)
+# - requirements-dev.txt: NOT installed in production (keeps image small)
+# - requirements-pytorch.txt: NOT installed (we use whisper.cpp, not PyTorch)
 COPY requirements.txt .
+RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies - Core web framework
-# Split into groups for better layer caching and error isolation
-RUN python3.10 -m pip install --no-cache-dir \
-    fastapi==0.104.1 \
-    uvicorn[standard]==0.24.0 \
-    pydantic==2.5.0 \
-    pydantic-settings==2.1.0
-
-# Install Python dependencies - Configuration
-RUN python3.10 -m pip install --no-cache-dir \
-    toml==0.10.2 \
-    tomli==2.0.1 \
-    PyYAML==6.0.1 \
-    python-multipart==0.0.6
-
-# Install Python dependencies - Metrics and HTTP client
-RUN python3.10 -m pip install --no-cache-dir \
-    prometheus-client==0.19.0 \
-    aiohttp==3.9.1
-
-# Install Python dependencies - Audio processing
-RUN python3.10 -m pip install --no-cache-dir \
-    numpy==1.24.3 \
-    scipy==1.11.4 \
-    librosa==0.10.1 \
-    soundfile==0.12.1
+# Optional: Install PyTorch backend (if needed for testing)
+# Uncomment the following lines to install PyTorch support:
+# COPY requirements-pytorch.txt .
+# RUN python3.10 -m pip install --no-cache-dir -r requirements-pytorch.txt
 
 # Verify critical packages are installed
 RUN python3.10 -c "import uvicorn; print('uvicorn installed:', uvicorn.__version__)"
