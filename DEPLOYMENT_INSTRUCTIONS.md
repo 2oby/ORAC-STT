@@ -19,7 +19,7 @@ This script will:
 1. Commit and push local changes to GitHub
 2. Pull latest code on Orin Nano
 3. Build whisper.cpp if not already built
-4. Build Docker image and start container via docker-compose
+4. Build Docker image and start container via docker compose
 5. Run health checks and display logs
 
 ### Manual Deployment
@@ -42,13 +42,13 @@ cd third_party/whisper_cpp
 ./build_whisper_cpp.sh
 cd /home/toby/orac-stt
 
-# 4. Deploy using docker-compose
-docker-compose down
-docker-compose up -d --build
+# 4. Deploy using docker compose
+docker compose down
+docker compose up -d --build
 
 # 5. Check status
-docker-compose ps
-docker-compose logs -f
+docker compose ps
+docker compose logs -f
 curl http://localhost:7272/health
 ```
 
@@ -83,7 +83,7 @@ COPY requirements-pytorch.txt .
 RUN python3.10 -m pip install --no-cache-dir -r requirements-pytorch.txt
 ```
 
-2. **Set environment variable** in docker-compose.yml:
+2. **Set environment variable** in docker compose.yml:
 ```yaml
 environment:
   - USE_WHISPER_CPP=false
@@ -91,12 +91,12 @@ environment:
 
 3. **Rebuild:**
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## Docker Compose Configuration
 
-The `docker-compose.yml` file provides:
+The `docker compose.yml` file provides:
 
 ### GPU Support
 - Runtime: nvidia
@@ -193,42 +193,42 @@ curl http://orin4:7272/stt/v1/health
 ### View Logs
 ```bash
 # Follow logs (real-time)
-docker-compose logs -f
+docker compose logs -f
 
 # Last 50 lines
-docker-compose logs --tail 50
+docker compose logs --tail 50
 
 # Specific service
-docker-compose logs -f orac-stt
+docker compose logs -f orac-stt
 ```
 
 ### Restart Service
 ```bash
 # Restart without rebuilding
-docker-compose restart
+docker compose restart
 
 # Stop and start
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ### Rebuild Container
 ```bash
 # Full rebuild (after code changes)
-docker-compose up -d --build
+docker compose up -d --build
 
 # Force rebuild from scratch
-docker-compose build --no-cache
-docker-compose up -d
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Shell Access
 ```bash
 # Access running container
-docker-compose exec orac-stt bash
+docker compose exec orac-stt bash
 
 # One-time command
-docker-compose exec orac-stt python3.10 -c "import uvicorn; print(uvicorn.__version__)"
+docker compose exec orac-stt python3.10 -c "import uvicorn; print(uvicorn.__version__)"
 ```
 
 ## Troubleshooting
@@ -237,35 +237,35 @@ docker-compose exec orac-stt python3.10 -c "import uvicorn; print(uvicorn.__vers
 
 1. **Check logs:**
 ```bash
-docker-compose logs orac-stt
+docker compose logs orac-stt
 ```
 
 2. **Verify dependencies:**
 ```bash
-docker-compose exec orac-stt python3.10 -c "import uvicorn, fastapi; print('OK')"
+docker compose exec orac-stt python3.10 -c "import uvicorn, fastapi; print('OK')"
 ```
 
 3. **Check whisper.cpp:**
 ```bash
-docker-compose exec orac-stt ls -la /app/third_party/whisper_cpp/bin/
-docker-compose exec orac-stt ls -la /usr/local/lib/whisper/
+docker compose exec orac-stt ls -la /app/third_party/whisper_cpp/bin/
+docker compose exec orac-stt ls -la /usr/local/lib/whisper/
 ```
 
 ### Health Check Failing
 
 1. **Check if service is listening:**
 ```bash
-docker-compose exec orac-stt netstat -tulpn | grep 7272
+docker compose exec orac-stt netstat -tulpn | grep 7272
 ```
 
 2. **Test from inside container:**
 ```bash
-docker-compose exec orac-stt curl http://localhost:7272/health
+docker compose exec orac-stt curl http://localhost:7272/health
 ```
 
 3. **Check GPU access:**
 ```bash
-docker-compose exec orac-stt nvidia-smi
+docker compose exec orac-stt nvidia-smi
 ```
 
 ### Import Errors
@@ -279,14 +279,14 @@ cat requirements.txt
 
 2. **Rebuild without cache:**
 ```bash
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
 
 3. **Check pip list inside container:**
 ```bash
-docker-compose exec orac-stt pip list
+docker compose exec orac-stt pip list
 ```
 
 ### High Memory Usage
@@ -296,7 +296,7 @@ docker-compose exec orac-stt pip list
 docker stats orac-stt
 ```
 
-2. **Adjust limits in docker-compose.yml:**
+2. **Adjust limits in docker compose.yml:**
 ```yaml
 deploy:
   resources:
@@ -308,7 +308,7 @@ deploy:
 
 ### Environment Overrides
 
-Override config via docker-compose.yml:
+Override config via docker compose.yml:
 
 ```yaml
 environment:
@@ -344,7 +344,7 @@ For production, generate and mount certificates:
 mkdir -p certs
 # Add cert generation script here
 
-# Mount in docker-compose.yml (already configured)
+# Mount in docker compose.yml (already configured)
 volumes:
   - ./certs:/app/certs:ro
 ```

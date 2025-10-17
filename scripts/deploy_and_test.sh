@@ -115,9 +115,9 @@ ssh ${ORIN_HOST} "
 echo "📁 Creating required directories..."
 ssh ${ORIN_HOST} "mkdir -p ${REMOTE_DIR}/debug_recordings ${REMOTE_DIR}/data ${REMOTE_DIR}/models ${REMOTE_DIR}/logs ${REMOTE_DIR}/certs"
 
-# Build and start container using docker-compose
+# Build and start container using docker compose
 echo "🔨 Building Docker image and starting container..."
-ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker-compose down || true && docker-compose up -d --build"
+ssh ${ORIN_HOST} "cd ${REMOTE_DIR} && docker compose down || true && docker compose up -d --build"
 
 # Wait for service to start
 echo "⏳ Waiting for service to start..."

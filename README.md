@@ -50,7 +50,7 @@ The project uses split requirements files for better organization and smaller pr
 **Production deployment** (Docker container):
 ```bash
 # Automatically installed via Dockerfile - only requirements.txt
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 **Local development**:

@@ -84,21 +84,21 @@ cd scripts && ./deploy_and_test.sh
 1. **Commit & Push**: Commits local changes and pushes to GitHub
 2. **Pull on Orin**: Pulls latest code from GitHub to Orin Nano
 3. **Build whisper.cpp**: Builds whisper.cpp if not already built (one-time)
-4. **Deploy**: Uses `docker-compose up -d --build` to build and start container
+4. **Deploy**: Uses `docker compose up -d --build` to build and start container
 5. **Test**: Health check, metrics validation, log inspection
 6. **Report**: Success/failure with container logs
 
 ### 3. Manual Operations
 ```bash
-# Direct Orin commands via docker-compose
-ssh orin4 "cd /home/toby/orac-stt && docker-compose ps"
-ssh orin4 "cd /home/toby/orac-stt && docker-compose logs -f"
+# Direct Orin commands via docker compose
+ssh orin4 "cd /home/toby/orac-stt && docker compose ps"
+ssh orin4 "cd /home/toby/orac-stt && docker compose logs -f"
 ssh orin4 "curl http://localhost:7272/health"
 
 # Container management
-ssh orin4 "cd /home/toby/orac-stt && docker-compose restart"
-ssh orin4 "cd /home/toby/orac-stt && docker-compose down"
-ssh orin4 "cd /home/toby/orac-stt && docker-compose up -d"
+ssh orin4 "cd /home/toby/orac-stt && docker compose restart"
+ssh orin4 "cd /home/toby/orac-stt && docker compose down"
+ssh orin4 "cd /home/toby/orac-stt && docker compose up -d"
 ```
 
 ## Configuration
@@ -127,14 +127,14 @@ ssh orin4 "cd /home/toby/orac-stt && docker-compose up -d"
 cd scripts && ./deploy_and_test.sh
 
 # Check logs
-ssh orin4 "cd /home/toby/orac-stt && docker-compose logs --tail 20"
+ssh orin4 "cd /home/toby/orac-stt && docker compose logs --tail 20"
 
 # Test endpoints
 curl -s http://orin4:7272/health | jq .
 curl -s http://orin4:7272/metrics | head -10
 
 # Force rebuild (no cache)
-ssh orin4 "cd /home/toby/orac-stt && docker-compose build --no-cache && docker-compose up -d"
+ssh orin4 "cd /home/toby/orac-stt && docker compose build --no-cache && docker compose up -d"
 ```
 
 ## Performance Targets
