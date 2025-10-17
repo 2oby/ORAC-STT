@@ -1,0 +1,20 @@
+# ORAC STT - Optional PyTorch Backend
+# Only needed if USE_WHISPER_CPP=false
+# Install with: pip install -r requirements-pytorch.txt
+#
+# NOTE: By default, ORAC STT uses whisper.cpp for better performance on Jetson devices.
+# This PyTorch backend is experimental and NOT recommended for production use.
+# The whisper.cpp backend provides:
+# - Lower memory usage
+# - Faster inference on ARM/CUDA
+# - Better quantization support
+#
+# Only install this if you specifically need the PyTorch backend for testing or development.
+
+# Include core dependencies
+-r requirements.txt
+
+# PyTorch and Whisper
+torch==2.1.0
+torchaudio==2.1.0
+openai-whisper==20231117

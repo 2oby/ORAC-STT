@@ -1,8 +1,14 @@
-# Core dependencies
+# ORAC STT - Production Dependencies
+# These are the core dependencies needed to run the service in production.
+# For development, use: pip install -r requirements-dev.txt
+# For PyTorch backend (optional), use: pip install -r requirements-pytorch.txt
+
+# Core web framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
+python-multipart==0.0.6
 
 # Configuration
 toml==0.10.2
@@ -18,21 +24,5 @@ scipy==1.11.4
 librosa==0.10.1
 soundfile==0.12.1
 
-# Machine Learning
-torch==2.1.0
-torchaudio==2.1.0
-openai-whisper==20231117
-
-# HTTP client
+# HTTP client for ORAC Core integration
 aiohttp==3.9.1
-# httpx==0.25.2
-# tenacity==8.2.3
-
-# Development
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
-black==23.11.0
-isort==5.12.0
-mypy==1.7.1
-flake8==6.1.0
