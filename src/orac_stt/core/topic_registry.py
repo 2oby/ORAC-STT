@@ -3,7 +3,7 @@ import os
 import yaml
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from threading import RLock
 
@@ -43,7 +43,7 @@ class TopicRegistry:
                 logger.info(f"Auto-registering new topic: {topic_name}")
                 topic = TopicConfig(
                     name=topic_name,
-                    last_seen=datetime.utcnow(),
+                    last_seen=datetime.now(timezone.utc),
                     metadata=metadata or {}
                 )
                 self.topics[topic_name] = topic

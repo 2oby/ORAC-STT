@@ -1,5 +1,5 @@
 """Topic models for ORAC STT."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -17,11 +17,14 @@ class TopicConfig(BaseModel):
         """Check if topic is active (heartbeat within last 2 minutes)."""
         if not self.last_seen:
             return False
-        return (datetime.utcnow() - self.last_seen).total_seconds() < 120
-    
+        # Make both datetimes timezone-aware for comparison
+        now = datetime.now(timezone.utc)
+        last_seen = self.last_seen if self.last_seen.tzinfo else self.last_seen.replace(tzinfo=timezone.utc)
+        return (now - last_seen).total_seconds() < 120
+
     def update_activity(self, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Update last seen timestamp and optional metadata."""
-        self.last_seen = datetime.utcnow()
+        self.last_seen = datetime.now(timezone.utc)
         if metadata:
             self.metadata.update(metadata)
     
