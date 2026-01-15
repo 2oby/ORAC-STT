@@ -83,13 +83,14 @@ class WhisperCppModel:
                 "-m", str(self.model_path),
                 "-f", tmp_path,
                 "--no-timestamps",  # Disable timestamps for faster inference
-                "--print-colors", "false",  # Disable color output
+                # Note: VAD requires a separate model file (silero_vad.onnx)
+                # TODO: Download VAD model and enable: --vad --vad-model /path/to/silero_vad.onnx
             ]
-            
+
             # Add GPU flag if using CUDA (whisper.cpp uses --no-gpu to disable, GPU is default)
             if self.device == "cpu":
                 cmd.append("--no-gpu")
-            
+
             # Add language if specified
             if language:
                 cmd.extend(["-l", language])
