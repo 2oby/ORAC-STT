@@ -19,11 +19,16 @@ services:
       - LD_LIBRARY_PATH=/usr/local/lib/whisper
       # Service configuration
       - LOG_LEVEL=INFO
-      - MODEL_NAME=whisper-tiny-int8
+      - MODEL_NAME=whisper-tiny
       - MODEL_CACHE_DIR=/app/models
       - ORAC_COMMAND_API_URL=http://localhost:8001/command
       - ORAC_API_PORT=7272
-      - USE_WHISPER_CPP=true
+      # Whisper backend: Use whisper-server for persistent model (faster)
+      # Set USE_WHISPER_SERVER=true to use whisper-server (model stays loaded)
+      # Set USE_WHISPER_SERVER=false to use whisper-cli (subprocess per request)
+      - USE_WHISPER_SERVER=true
+      - WHISPER_SERVER_URL=http://localhost:8080
+      - USE_WHISPER_CPP=false
       
     # Volume mounts - ensure proper permissions
     volumes:
@@ -61,12 +66,13 @@ services:
     restart: unless-stopped
     
     # Health check
+    # Note: Increased start_period to allow whisper-server to load model
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7272/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 90s
       
     # Logging
     logging:

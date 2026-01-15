@@ -1,4 +1,4 @@
-"""Unified model loader supporting both whisper.cpp and PyTorch backends."""
+"""Unified model loader supporting whisper.cpp, whisper-server, and PyTorch backends."""
 
 import os
 import time
@@ -10,9 +10,14 @@ from ..config.settings import ModelConfig
 from ..utils.logging import get_logger
 
 # Determine which backend to use
+# Priority: whisper-server > whisper.cpp > PyTorch
+USE_WHISPER_SERVER = os.environ.get("USE_WHISPER_SERVER", "false").lower() == "true"
 USE_WHISPER_CPP = os.environ.get("USE_WHISPER_CPP", "true").lower() == "true"
+WHISPER_SERVER_URL = os.environ.get("WHISPER_SERVER_URL", "http://localhost:8080")
 
-if USE_WHISPER_CPP:
+if USE_WHISPER_SERVER:
+    from .whisper_server import WhisperServerModel
+elif USE_WHISPER_CPP:
     from .whisper_cpp import WhisperCppModel
 else:
     import torch
@@ -46,17 +51,26 @@ class UnifiedWhisperLoader:
     
     def __init__(self, config: ModelConfig):
         """Initialize unified loader.
-        
+
         Args:
             config: Model configuration
         """
         self.config = config
+        self.use_whisper_server = USE_WHISPER_SERVER
         self.use_whisper_cpp = USE_WHISPER_CPP
+        self.whisper_server_url = WHISPER_SERVER_URL
         self._model: Optional[Any] = None
         self._load_time: Optional[float] = None
-        
-        logger.info(f"Initializing UnifiedWhisperLoader with backend: "
-                   f"{'whisper.cpp' if self.use_whisper_cpp else 'PyTorch'}")
+
+        # Determine backend name for logging
+        if self.use_whisper_server:
+            backend = f"whisper-server ({self.whisper_server_url})"
+        elif self.use_whisper_cpp:
+            backend = "whisper.cpp"
+        else:
+            backend = "PyTorch"
+
+        logger.info(f"Initializing UnifiedWhisperLoader with backend: {backend}")
     
     @property
     def model(self) -> Any:
@@ -69,19 +83,37 @@ class UnifiedWhisperLoader:
         """Load model using appropriate backend."""
         start_time = time.time()
         model_name = self.config.name
-        
+
         try:
-            if self.use_whisper_cpp:
+            if self.use_whisper_server:
+                self._load_whisper_server()
+            elif self.use_whisper_cpp:
                 self._load_whisper_cpp(model_name)
             else:
                 self._load_pytorch(model_name)
-                
+
             self._load_time = time.time() - start_time
             logger.info(f"Model loaded successfully in {self._load_time:.2f}s")
-            
+
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
             raise
+
+    def _load_whisper_server(self) -> None:
+        """Initialize whisper-server client."""
+        logger.info(f"Connecting to whisper-server at {self.whisper_server_url}")
+
+        self._model = WhisperServerModel(
+            server_url=self.whisper_server_url,
+            timeout=30.0,
+            language="en",
+        )
+
+        # Wait for server to be ready (model may still be loading)
+        if not self._model.wait_for_ready(timeout=60.0):
+            raise RuntimeError(
+                f"Whisper-server at {self.whisper_server_url} not ready"
+            )
     
     def _load_whisper_cpp(self, model_name: str) -> None:
         """Load whisper.cpp model."""

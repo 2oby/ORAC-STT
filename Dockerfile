@@ -51,6 +51,10 @@ RUN python3.10 -c "import pydantic; print('pydantic installed:', pydantic.__vers
 COPY src/ ./src/
 COPY config.toml.example ./config.toml
 
+# Copy entrypoint script
+COPY scripts/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Create necessary directories
 RUN mkdir -p /app/models /app/logs /app/certs /app/third_party/whisper_cpp
 
@@ -61,5 +65,6 @@ EXPOSE 7272
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:7272/health || exit 1
 
-# Use python3.10 explicitly in CMD for consistency
-CMD ["/usr/bin/python3.10", "-m", "src.orac_stt.main"]
+# Use entrypoint script which optionally starts whisper-server
+# Set USE_WHISPER_SERVER=true to enable whisper-server mode
+ENTRYPOINT ["/app/entrypoint.sh"]
