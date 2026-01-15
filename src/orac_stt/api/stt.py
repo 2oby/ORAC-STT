@@ -9,7 +9,7 @@ from datetime import datetime
 import soundfile as sf
 from dataclasses import dataclass
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Response
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Response, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import numpy as np
@@ -465,6 +465,7 @@ def handle_unexpected_error(
 @router.post("/stream/{topic}", response_model=TranscriptionResponse)
 async def transcribe_stream_with_topic(
     topic: str,
+    request: Request,
     file: UploadFile = File(..., description="Audio file to transcribe"),
     language: Optional[str] = None,
     task: str = "transcribe",
@@ -480,6 +481,7 @@ async def transcribe_stream_with_topic(
 
     Args:
         topic: Topic ID for ORAC Core routing
+        request: FastAPI request object (for reading timing headers)
         file: Audio file upload
         language: Optional language code
         task: Task type (transcribe or translate)
@@ -491,6 +493,15 @@ async def transcribe_stream_with_topic(
     Returns:
         Transcription response with text and metadata
     """
+    # Extract timing headers from Hey ORAC
+    wake_word_time = request.headers.get('X-Wake-Word-Time')
+    recording_end_time = request.headers.get('X-Recording-End-Time')
+
+    if wake_word_time:
+        logger.info(f"⏱️ Received wake word time: {wake_word_time}")
+    if recording_end_time:
+        logger.info(f"⏱️ Received recording end time: {recording_end_time}")
+
     return await _transcribe_impl(
         file=file,
         language=language,
@@ -499,7 +510,9 @@ async def transcribe_stream_with_topic(
         forward_to_core=forward_to_core,
         model_loader=model_loader,
         command_buffer=command_buffer,
-        core_client=core_client
+        core_client=core_client,
+        wake_word_time=wake_word_time,
+        recording_end_time=recording_end_time
     )
 
 
@@ -537,7 +550,9 @@ async def _transcribe_impl(
     language: Optional[str] = None,
     task: str = "transcribe",
     topic: str = "general",
-    forward_to_core: bool = True
+    forward_to_core: bool = True,
+    wake_word_time: Optional[str] = None,
+    recording_end_time: Optional[str] = None
 ) -> TranscriptionResponse:
     """Main transcription orchestrator.
 
@@ -553,6 +568,8 @@ async def _transcribe_impl(
         task: Task type (transcribe/translate)
         topic: Topic for routing
         forward_to_core: Whether to forward to Core
+        wake_word_time: ISO timestamp when wake word was detected (from Hey ORAC)
+        recording_end_time: ISO timestamp when recording ended (from Hey ORAC)
 
     Returns:
         TranscriptionResponse with results or error info
@@ -588,11 +605,22 @@ async def _transcribe_impl(
 
         # 5. Forward to ORAC Core if successful
         if result.should_forward and forward_to_core:
+            # Build metadata with timing information
+            metadata = result.get_metadata(duration, time.time() - start_time)
+            # Add STT timing
+            metadata['stt_start_time'] = datetime.fromtimestamp(start_time).isoformat()
+            metadata['stt_end_time'] = datetime.now().isoformat()
+            # Pass through Hey ORAC timing
+            if wake_word_time:
+                metadata['wake_word_time'] = wake_word_time
+            if recording_end_time:
+                metadata['recording_end_time'] = recording_end_time
+
             await forward_to_core_async(
                 core_client=core_client,
                 text=result.text,
                 topic=topic,
-                metadata=result.get_metadata(duration, time.time() - start_time)
+                metadata=metadata
             )
 
         # 6. Build and return response
