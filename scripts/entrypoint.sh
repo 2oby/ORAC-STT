@@ -10,10 +10,31 @@ WHISPER_MODEL="/app/models/whisper_cpp/whisper/ggml-tiny.bin"
 WHISPER_SERVER_PORT="${WHISPER_SERVER_PORT:-8080}"
 WHISPER_SERVER_HOST="${WHISPER_SERVER_HOST:-127.0.0.1}"
 USE_WHISPER_SERVER="${USE_WHISPER_SERVER:-false}"
+CUDA_LIB_DIR="/usr/local/lib/whisper"
 
 # Log helper
 log() {
     echo "[entrypoint] $(date '+%Y-%m-%d %H:%M:%S') $1"
+}
+
+# Decompress CUDA library if needed (stored compressed due to GitHub size limits)
+decompress_cuda_lib() {
+    local cuda_lib="$CUDA_LIB_DIR/libggml-cuda.so"
+    local cuda_lib_gz="$CUDA_LIB_DIR/libggml-cuda.so.gz"
+
+    if [ -f "$cuda_lib" ]; then
+        log "CUDA library already decompressed"
+        return 0
+    fi
+
+    if [ -f "$cuda_lib_gz" ]; then
+        log "Decompressing CUDA library..."
+        gunzip -k "$cuda_lib_gz"
+        log "CUDA library decompressed"
+        return 0
+    fi
+
+    log "WARNING: CUDA library not found (GPU acceleration unavailable)"
 }
 
 # Start whisper-server if enabled
@@ -73,6 +94,9 @@ trap cleanup EXIT
 # Main
 log "ORAC STT entrypoint starting..."
 log "USE_WHISPER_SERVER=$USE_WHISPER_SERVER"
+
+# Decompress CUDA library if needed
+decompress_cuda_lib
 
 start_whisper_server
 
