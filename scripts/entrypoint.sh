@@ -11,6 +11,8 @@ WHISPER_SERVER_PORT="${WHISPER_SERVER_PORT:-8080}"
 WHISPER_SERVER_HOST="${WHISPER_SERVER_HOST:-127.0.0.1}"
 USE_WHISPER_SERVER="${USE_WHISPER_SERVER:-false}"
 CUDA_LIB_DIR="/usr/local/lib/whisper"
+# Prompt to bias Whisper toward common words (fixes "lounge" being heard as "launch")
+WHISPER_PROMPT="${WHISPER_PROMPT:-lounge cabinet lights kitchen bedroom bathroom office}"
 
 # Log helper
 log() {
@@ -57,12 +59,15 @@ start_whisper_server() {
     log "Starting whisper-server on $WHISPER_SERVER_HOST:$WHISPER_SERVER_PORT..."
 
     # Start whisper-server in background
+    # --prompt biases the model toward common location/device words
+    log "Using whisper prompt: $WHISPER_PROMPT"
     $WHISPER_SERVER_BIN \
         --model "$WHISPER_MODEL" \
         --host "$WHISPER_SERVER_HOST" \
         --port "$WHISPER_SERVER_PORT" \
         --no-timestamps \
         --language en \
+        --prompt "$WHISPER_PROMPT" \
         2>&1 | while read line; do echo "[whisper-server] $line"; done &
 
     WHISPER_PID=$!
