@@ -7,6 +7,11 @@ services:
     # GPU support for Orin Nano
     runtime: nvidia
 
+    # CUDA requires more shared memory for cuBLAS operations
+    # 64MB default is too small, causing "resource allocation failed" errors
+    shm_size: 1g
+    ipc: host
+
     # Environment configuration (consolidated single block)
     environment:
       # Timezone (Switzerland)
@@ -16,7 +21,8 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       # Python settings
       - PYTHONUNBUFFERED=1
-      - LD_LIBRARY_PATH=/usr/local/lib/whisper
+      # Jetson aarch64 CUDA libs FIRST, then whisper libs (container's SBSA libs don't work)
+      - LD_LIBRARY_PATH=/usr/local/cuda/targets/aarch64-linux/lib:/usr/local/lib/whisper
       # Service configuration
       - LOG_LEVEL=INFO
       - MODEL_NAME=whisper-tiny
@@ -49,6 +55,8 @@ services:
       - ./third_party/whisper_cpp/bin:/app/third_party/whisper_cpp/bin:ro
       - ./third_party/whisper_cpp/models:/app/models/whisper_cpp:ro
       - ./third_party/whisper_cpp/lib:/usr/local/lib/whisper:ro
+      # Host Jetson CUDA libraries (container has SBSA libs which don't work on Jetson)
+      - /usr/local/cuda/targets/aarch64-linux/lib:/usr/local/cuda/targets/aarch64-linux/lib:ro
       
     # Port mappings
     ports:
