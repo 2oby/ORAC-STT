@@ -21,7 +21,7 @@ class ModelConfig(BaseSettings):
             return Path(v)
         return v
 
-    model_config = ConfigDict(env_prefix="ORAC_MODEL_")
+    model_config = ConfigDict(env_prefix="")
 
 
 class APIConfig(BaseSettings):
