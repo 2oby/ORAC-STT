@@ -111,32 +111,119 @@ class AudioProcessor:
 
 class AudioBuffer:
     """Manage audio buffers for streaming."""
-    
+
     def __init__(self, sample_rate: int = 16000):
         """Initialize audio buffer.
-        
+
         Args:
             sample_rate: Sample rate in Hz
         """
         self.sample_rate = sample_rate
         self.buffer = np.array([], dtype=np.float32)
-        
+
     def append(self, audio: np.ndarray) -> None:
         """Append audio to buffer.
-        
+
         Args:
             audio: Audio array to append
         """
         self.buffer = np.concatenate([self.buffer, audio])
-        
+
     def get_duration(self) -> float:
         """Get current buffer duration in seconds."""
         return len(self.buffer) / self.sample_rate
-        
+
     def clear(self) -> None:
         """Clear the buffer."""
         self.buffer = np.array([], dtype=np.float32)
-        
+
     def get_audio(self) -> np.ndarray:
         """Get the current audio buffer."""
         return self.buffer.copy()
+
+
+class AudioStreamBuffer:
+    """Accumulates audio chunks for streaming transcription.
+
+    Receives raw int16 audio chunks from WebSocket and buffers them
+    until enough audio has accumulated for transcription.
+    """
+
+    def __init__(self, sample_rate: int = 16000, threshold_ms: int = 500):
+        """Initialize streaming audio buffer.
+
+        Args:
+            sample_rate: Sample rate in Hz (default 16000 for Whisper)
+            threshold_ms: Minimum audio duration in ms before transcription
+        """
+        self.sample_rate = sample_rate
+        self.threshold_ms = threshold_ms
+        self.threshold_samples = int(sample_rate * threshold_ms / 1000)
+        self.buffer = np.array([], dtype=np.float32)
+        self._total_samples_received = 0
+
+    def append_int16(self, chunk: bytes) -> None:
+        """Add raw int16 audio chunk to buffer.
+
+        Args:
+            chunk: Raw audio bytes (int16 format, mono, 16kHz)
+        """
+        # Convert int16 bytes to float32 normalized to [-1, 1]
+        audio = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+        self.buffer = np.concatenate([self.buffer, audio])
+        self._total_samples_received += len(audio)
+
+    def append_float32(self, chunk: bytes) -> None:
+        """Add raw float32 audio chunk to buffer.
+
+        Args:
+            chunk: Raw audio bytes (float32 format, mono, 16kHz)
+        """
+        audio = np.frombuffer(chunk, dtype=np.float32)
+        self.buffer = np.concatenate([self.buffer, audio])
+        self._total_samples_received += len(audio)
+
+    def ready_for_transcription(self) -> bool:
+        """Check if enough audio has accumulated for transcription.
+
+        Returns:
+            True if buffer duration >= threshold_ms
+        """
+        return len(self.buffer) >= self.threshold_samples
+
+    def get_duration_ms(self) -> float:
+        """Get current buffer duration in milliseconds."""
+        return (len(self.buffer) / self.sample_rate) * 1000
+
+    def get_total_duration_ms(self) -> float:
+        """Get total audio received in milliseconds."""
+        return (self._total_samples_received / self.sample_rate) * 1000
+
+    def get_audio(self) -> np.ndarray:
+        """Get accumulated audio for transcription.
+
+        Returns:
+            Audio as float32 numpy array normalized to [-1, 1]
+        """
+        return self.buffer.copy()
+
+    def get_audio_prepared(self) -> np.ndarray:
+        """Get audio prepared for Whisper (float32, normalized).
+
+        Returns:
+            Audio ready for Whisper transcription
+        """
+        audio = self.buffer.copy()
+        # Ensure proper normalization for Whisper
+        if len(audio) > 0 and np.abs(audio).max() > 1.0:
+            audio = audio / np.abs(audio).max()
+        return audio
+
+    def clear(self) -> None:
+        """Clear buffer after transcription."""
+        self.buffer = np.array([], dtype=np.float32)
+
+    def reset(self) -> None:
+        """Full reset including total samples counter."""
+        self.buffer = np.array([], dtype=np.float32)
+        self._total_samples_received = 0

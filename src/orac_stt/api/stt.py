@@ -1,5 +1,6 @@
 """Speech-to-Text API endpoints."""
 
+import json
 import time
 from typing import Dict, Any, Optional
 import asyncio
@@ -9,13 +10,13 @@ from datetime import datetime
 import soundfile as sf
 from dataclasses import dataclass
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Response, Request
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Response, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import numpy as np
 
-from ..config.settings import Settings
-from ..audio.processor import AudioProcessor
+from ..config.settings import Settings, get_settings
+from ..audio.processor import AudioProcessor, AudioStreamBuffer
 from ..audio.validator import AudioValidationError
 from ..models.unified_loader import UnifiedWhisperLoader
 from ..utils.logging import get_logger
@@ -632,22 +633,273 @@ async def _transcribe_impl(
         return handle_unexpected_error(e, command_buffer, time.time() - start_time)
 
 
+# =============================================================================
+# WebSocket Streaming Endpoint
+# =============================================================================
+
+
+class StreamingTranscriptionResult(BaseModel):
+    """Result sent back over WebSocket after transcription."""
+    type: str = "transcription"
+    text: str
+    confidence: float
+    language: Optional[str] = None
+    duration: float
+    processing_time: float
+    is_final: bool = True
+
+
+@router.websocket("/ws/stream/{topic}")
+async def websocket_stream_transcription(
+    websocket: WebSocket,
+    topic: str
+):
+    """Stream audio via WebSocket for real-time transcription.
+
+    Protocol:
+    - Client sends binary frames: raw int16 audio chunks (16kHz mono)
+    - Client sends text frame: {"type": "end"} to signal end of speech
+    - Client can send text frame: {"type": "config", ...} to configure
+    - Server sends text frame: JSON transcription result when done
+
+    Args:
+        websocket: WebSocket connection
+        topic: Topic ID for ORAC Core routing
+    """
+    settings = get_settings()
+
+    # Check if streaming is enabled
+    if not settings.streaming.enabled:
+        await websocket.close(code=4003, reason="Streaming not enabled")
+        return
+
+    await websocket.accept()
+    logger.info(f"WebSocket connection accepted for topic '{topic}'")
+
+    # Get dependencies manually (can't use Depends with WebSocket easily)
+    from ..dependencies import get_model_loader, get_command_buffer, get_core_client
+    model_loader = get_model_loader()
+    command_buffer = get_command_buffer()
+    core_client = get_core_client()
+
+    # Initialize stream buffer with configured threshold
+    stream_buffer = AudioStreamBuffer(
+        sample_rate=16000,
+        threshold_ms=settings.streaming.buffer_threshold_ms
+    )
+
+    start_time = time.time()
+    wake_word_time: Optional[str] = None
+    connection_open = True
+
+    try:
+        while connection_open:
+            # Receive message (binary audio or text control)
+            message = await websocket.receive()
+
+            if message["type"] == "websocket.disconnect":
+                logger.info("WebSocket disconnected by client")
+                connection_open = False
+                break
+
+            if "bytes" in message:
+                # Binary frame: audio data
+                audio_chunk = message["bytes"]
+
+                # Append based on configured format
+                if settings.streaming.audio_format == "float32":
+                    stream_buffer.append_float32(audio_chunk)
+                else:
+                    stream_buffer.append_int16(audio_chunk)
+
+                logger.debug(
+                    f"Received audio chunk: {len(audio_chunk)} bytes, "
+                    f"buffer: {stream_buffer.get_duration_ms():.0f}ms"
+                )
+
+            elif "text" in message:
+                # Text frame: control message
+                try:
+                    control = json.loads(message["text"])
+                    msg_type = control.get("type", "")
+
+                    if msg_type == "end":
+                        # End of speech - transcribe and send result
+                        logger.info(
+                            f"End signal received. Total audio: "
+                            f"{stream_buffer.get_total_duration_ms():.0f}ms"
+                        )
+
+                        # Perform transcription
+                        result = await _transcribe_stream_buffer(
+                            stream_buffer=stream_buffer,
+                            model_loader=model_loader,
+                            command_buffer=command_buffer,
+                            core_client=core_client,
+                            topic=topic,
+                            start_time=start_time,
+                            wake_word_time=wake_word_time
+                        )
+
+                        # Send result to client
+                        await websocket.send_text(result.model_dump_json())
+                        logger.info(f"Sent transcription result: {result.text[:50]}...")
+
+                        # Close connection after final result
+                        connection_open = False
+
+                    elif msg_type == "config":
+                        # Configuration message (e.g., wake_word_time)
+                        wake_word_time = control.get("wake_word_time")
+                        if wake_word_time:
+                            logger.info(f"⏱️ Received wake word time: {wake_word_time}")
+
+                    elif msg_type == "ping":
+                        # Keep-alive ping
+                        await websocket.send_text(json.dumps({"type": "pong"}))
+
+                    else:
+                        logger.warning(f"Unknown control message type: {msg_type}")
+
+                except json.JSONDecodeError:
+                    logger.warning(f"Invalid JSON in text frame: {message['text'][:100]}")
+
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for topic '{topic}'")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+        try:
+            error_response = json.dumps({
+                "type": "error",
+                "error": str(e)
+            })
+            await websocket.send_text(error_response)
+        except Exception:
+            pass
+    finally:
+        logger.info(
+            f"WebSocket session ended for topic '{topic}'. "
+            f"Total duration: {time.time() - start_time:.2f}s"
+        )
+
+
+async def _transcribe_stream_buffer(
+    stream_buffer: AudioStreamBuffer,
+    model_loader: UnifiedWhisperLoader,
+    command_buffer: CommandBuffer,
+    core_client: ORACCoreClient,
+    topic: str,
+    start_time: float,
+    wake_word_time: Optional[str] = None
+) -> StreamingTranscriptionResult:
+    """Transcribe accumulated audio from stream buffer.
+
+    Args:
+        stream_buffer: Buffer containing accumulated audio
+        model_loader: Whisper model loader
+        command_buffer: Command history buffer
+        core_client: ORAC Core client
+        topic: Topic for routing
+        start_time: Connection start time
+        wake_word_time: Wake word detection timestamp
+
+    Returns:
+        StreamingTranscriptionResult with transcription
+    """
+    transcribe_start = time.time()
+
+    # Get audio from buffer
+    audio_data = stream_buffer.get_audio_prepared()
+    duration = len(audio_data) / 16000
+
+    if len(audio_data) == 0:
+        logger.warning("No audio data in buffer")
+        return StreamingTranscriptionResult(
+            text="",
+            confidence=0.0,
+            duration=0.0,
+            processing_time=0.0,
+            is_final=True
+        )
+
+    # Save debug recording
+    audio_path = await save_debug_recording_if_enabled(
+        audio_data, 16000, "[Streaming...]"
+    )
+
+    # Transcribe
+    result = await transcribe_with_error_handling(
+        audio_data=audio_data,
+        sample_rate=16000,
+        model_loader=model_loader,
+        language=None,
+        task="transcribe",
+        start_time=transcribe_start
+    )
+
+    processing_time = time.time() - transcribe_start
+
+    # Add to command history
+    await add_to_command_history(
+        command_buffer=command_buffer,
+        text=result.text,
+        audio_path=audio_path,
+        duration=duration,
+        confidence=result.confidence,
+        processing_time=processing_time,
+        language=result.language,
+        has_error=result.has_error,
+        error_message=result.error_message
+    )
+
+    # Forward to ORAC Core if successful
+    if result.should_forward:
+        metadata = result.get_metadata(duration, processing_time)
+        metadata['stt_start_time'] = datetime.fromtimestamp(transcribe_start).isoformat()
+        metadata['stt_end_time'] = datetime.now().isoformat()
+        metadata['streaming'] = True
+        if wake_word_time:
+            metadata['wake_word_time'] = wake_word_time
+
+        await forward_to_core_async(
+            core_client=core_client,
+            text=result.text,
+            topic=topic,
+            metadata=metadata
+        )
+
+    return StreamingTranscriptionResult(
+        text=result.text,
+        confidence=result.confidence,
+        language=result.language,
+        duration=duration,
+        processing_time=processing_time,
+        is_final=True
+    )
+
+
 @router.get("/health")
 async def stt_health(
     model_loader: UnifiedWhisperLoader = Depends(get_model_loader)
 ) -> Dict[str, Any]:
     """Check STT endpoint health and model status."""
     try:
-        
+        settings = get_settings()
+
         # Check if model is loaded
         model_loaded = model_loader._model is not None
-        
+
         return {
             "status": "healthy" if model_loaded else "initializing",
             "model_loaded": model_loaded,
             "model_name": model_loader.config.name,
             "backend": "whisper.cpp" if model_loader.use_whisper_cpp else "pytorch",
-            "device": model_loader.config.device
+            "device": model_loader.config.device,
+            "streaming": {
+                "enabled": settings.streaming.enabled,
+                "buffer_threshold_ms": settings.streaming.buffer_threshold_ms,
+                "audio_format": settings.streaming.audio_format
+            }
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")

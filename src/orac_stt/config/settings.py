@@ -26,13 +26,24 @@ class ModelConfig(BaseSettings):
 
 class APIConfig(BaseSettings):
     """API configuration settings."""
-    
+
     host: str = Field(default="0.0.0.0", env="API_HOST")
     port: int = Field(default=7272, env="API_PORT")
     max_audio_duration: int = Field(default=15, env="MAX_AUDIO_DURATION")
     request_timeout: int = Field(default=20, env="REQUEST_TIMEOUT")
-    
+
     model_config = ConfigDict(env_prefix="ORAC_API_")
+
+
+class StreamingConfig(BaseSettings):
+    """WebSocket streaming configuration settings."""
+
+    enabled: bool = Field(default=True, env="STREAMING_ENABLED")
+    buffer_threshold_ms: int = Field(default=500, env="STREAMING_BUFFER_THRESHOLD_MS")
+    partial_results: bool = Field(default=False, env="STREAMING_PARTIAL_RESULTS")
+    audio_format: str = Field(default="int16", env="STREAMING_AUDIO_FORMAT")
+
+    model_config = ConfigDict(env_prefix="ORAC_")
 
 
 class CommandAPIConfig(BaseSettings):
@@ -67,17 +78,18 @@ class SecurityConfig(BaseSettings):
 
 class Settings(BaseSettings):
     """Main application settings."""
-    
+
     app_name: str = Field(default="ORAC STT Service", env="APP_NAME")
     environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     log_format: str = Field(default="json", env="LOG_FORMAT")
     orac_core_url: str = Field(default="http://192.168.8.192:8000", env="ORAC_CORE_URL")
-    
+
     model: ModelConfig = Field(default_factory=ModelConfig)
     api: APIConfig = Field(default_factory=APIConfig)
     command_api: CommandAPIConfig = Field(default_factory=CommandAPIConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    streaming: StreamingConfig = Field(default_factory=StreamingConfig)
     
     model_config = ConfigDict(
         env_prefix="ORAC_",
