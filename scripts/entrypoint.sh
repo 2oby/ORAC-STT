@@ -6,13 +6,37 @@ set -e
 
 # Configuration
 WHISPER_SERVER_BIN="/app/third_party/whisper_cpp/bin/whisper-server"
-WHISPER_MODEL="/app/models/whisper_cpp/whisper/ggml-tiny.bin"
 WHISPER_SERVER_PORT="${WHISPER_SERVER_PORT:-8080}"
 WHISPER_SERVER_HOST="${WHISPER_SERVER_HOST:-127.0.0.1}"
 USE_WHISPER_SERVER="${USE_WHISPER_SERVER:-false}"
 CUDA_LIB_DIR="/usr/local/lib/whisper"
 # Prompt to bias Whisper toward common words (fixes "lounge" being heard as "launch")
 WHISPER_PROMPT="${WHISPER_PROMPT:-lounge cabinet lights kitchen bedroom bathroom office}"
+
+# Map MODEL_NAME to ggml file path
+MODEL_NAME="${MODEL_NAME:-whisper-tiny}"
+WHISPER_MODELS_DIR="/app/models/whisper_cpp/whisper"
+case "$MODEL_NAME" in
+    "whisper-tiny")
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-tiny.bin"
+        ;;
+    "whisper-base")
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-base.bin"
+        ;;
+    "whisper-small")
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-small.bin"
+        ;;
+    "whisper-medium")
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-medium.bin"
+        ;;
+    "whisper-large"|"whisper-large-v3")
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-large-v3.bin"
+        ;;
+    *)
+        log "WARNING: Unknown MODEL_NAME '$MODEL_NAME', defaulting to whisper-tiny"
+        WHISPER_MODEL="$WHISPER_MODELS_DIR/ggml-tiny.bin"
+        ;;
+esac
 
 # Log helper
 log() {
@@ -57,6 +81,7 @@ start_whisper_server() {
     fi
 
     log "Starting whisper-server on $WHISPER_SERVER_HOST:$WHISPER_SERVER_PORT..."
+    log "Model: $MODEL_NAME -> $WHISPER_MODEL"
 
     # Start whisper-server in background
     # --prompt biases the model toward common location/device words

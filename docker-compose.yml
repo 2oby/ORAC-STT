@@ -25,7 +25,7 @@ services:
       - LD_LIBRARY_PATH=/usr/local/cuda/targets/aarch64-linux/lib:/usr/local/lib/whisper
       # Service configuration
       - LOG_LEVEL=INFO
-      - MODEL_NAME=whisper-tiny
+      - MODEL_NAME=whisper-base
       - MODEL_CACHE_DIR=/app/models
       - ORAC_COMMAND_API_URL=http://localhost:8001/command
       - ORAC_API_PORT=7272

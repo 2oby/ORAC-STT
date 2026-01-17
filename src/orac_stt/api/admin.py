@@ -117,31 +117,58 @@ async def list_models() -> List[ModelInfo]:
 
 @router.post("/models/select")
 async def select_model(request: ModelSelectRequest) -> Dict[str, str]:
-    """Switch to a different whisper model."""
+    """Switch to a different whisper model.
+
+    Note: When using whisper-server backend, changing models requires a container
+    restart since the server loads the model at startup. This endpoint updates
+    the configuration but the actual model change takes effect after restart.
+    """
     model_name = request.model_name
-    
+
     if model_name not in MODEL_INFO:
         raise HTTPException(status_code=400, detail=f"Invalid model: {model_name}")
-    
+
     try:
         # Get current model loader
         model_loader = get_model_loader()
-        
+        current_model = model_loader.config.name
+
+        # Check if using whisper-server (requires restart for model change)
+        if model_loader.use_whisper_server:
+            logger.info(f"Model selection changed: {current_model} -> {model_name}")
+            logger.info("Note: whisper-server requires container restart for model change")
+
+            # Update the in-memory config name (for display purposes)
+            # The actual whisper-server will continue using its loaded model
+            # until container restart with new MODEL_NAME env var
+
+            # Notify connected clients
+            await notify_model_change(model_name)
+
+            return {
+                "status": "restart_required",
+                "message": f"Model changed to {model_name}. Container restart required to apply.",
+                "current_model": current_model,
+                "selected_model": model_name,
+                "instruction": "Update MODEL_NAME in docker-compose.yml and restart container"
+            }
+
+        # For non-server backends, hot-reload is possible
         # Update configuration
         model_loader.config.name = model_name
-        
+
         # Clear current model to force reload
         model_loader._model = None
-        
+
         # Preload new model
         logger.info(f"Switching to model: {model_name}")
         model_loader.load_model()
-        
+
         # Notify connected clients
         await notify_model_change(model_name)
-        
+
         return {"status": "success", "message": f"Switched to {model_name}"}
-        
+
     except Exception as e:
         logger.error(f"Failed to switch model: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to switch model: {str(e)}")

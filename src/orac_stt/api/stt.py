@@ -964,7 +964,7 @@ async def stt_health(
             "status": "healthy" if model_loaded else "initializing",
             "model_loaded": model_loaded,
             "model_name": model_loader.config.name,
-            "backend": "whisper.cpp" if model_loader.use_whisper_cpp else "pytorch",
+            "backend": "whisper-server" if model_loader.use_whisper_server else ("whisper.cpp" if model_loader.use_whisper_cpp else "pytorch"),
             "device": model_loader.config.device,
             "streaming": {
                 "enabled": settings.streaming.enabled,
