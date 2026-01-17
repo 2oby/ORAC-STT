@@ -61,11 +61,14 @@ start_whisper_server() {
     # Start whisper-server in background
     # --prompt biases the model toward common location/device words
     log "Using whisper prompt: $WHISPER_PROMPT"
+    # Use CPU-only mode to avoid GPU contention with llama-server
+    # Whisper-tiny is small enough that CPU inference is still fast (~0.5-1s)
     $WHISPER_SERVER_BIN \
         --model "$WHISPER_MODEL" \
         --host "$WHISPER_SERVER_HOST" \
         --port "$WHISPER_SERVER_PORT" \
         --no-timestamps \
+        --no-gpu \
         --language en \
         --prompt "$WHISPER_PROMPT" \
         2>&1 | while read line; do echo "[whisper-server] $line"; done &
