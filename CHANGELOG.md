@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-01-18
+
+### Added
+- Model restart functionality in admin UI (restart whisper-server with different model without container restart)
+- Orange pulsing animation on restart button when selected model differs from running model
+- `GET /admin/models/running` endpoint to get currently running model
+- `POST /admin/models/restart` endpoint to restart whisper-server with new model
+- Loading spinner animation on restart button during model switch
+
+### Changed
+- Upgraded default model from whisper-tiny to whisper-small for better accuracy
+- Health endpoint now correctly reports "whisper-server" backend when using whisper.cpp server
+- Fixed MODEL_NAME environment variable handling in pydantic settings
+
+### Fixed
+- Health endpoint was incorrectly reporting "pytorch" backend when using whisper-server
+- Config TOML was overriding MODEL_NAME environment variable
+
+---
+
 ## [0.2.0] - 2025-10-17
 
 ### Added
