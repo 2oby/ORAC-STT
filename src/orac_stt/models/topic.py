@@ -6,11 +6,15 @@ from pydantic import BaseModel, Field
 
 class TopicConfig(BaseModel):
     """Configuration for a single topic."""
-    
+
     name: str = Field(..., description="Topic identifier from wake word")
     orac_core_url: Optional[str] = Field(None, description="Override Core URL, None uses default")
     last_seen: Optional[datetime] = Field(None, description="Last heartbeat timestamp")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Wake word and trigger info")
+    wake_words_to_strip: Optional[str] = Field(
+        None,
+        description="Comma-separated wake words to strip from transcriptions (e.g., 'computa, hey computa')"
+    )
     
     @property
     def is_active(self) -> bool:

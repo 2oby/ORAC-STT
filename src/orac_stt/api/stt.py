@@ -34,37 +34,15 @@ DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
 MAX_DEBUG_RECORDINGS = 5
 
 
-def get_base_wake_word(wake_word_model: Optional[str]) -> Optional[str]:
-    """Extract base wake word from model name.
+def strip_wake_word(text: str, wake_words_to_strip: Optional[str] = None) -> str:
+    """Strip configured wake word prefix from transcription.
 
-    Args:
-        wake_word_model: Wake word model name (e.g., "computer_v2", "hey_jarvis")
-
-    Returns:
-        Base wake word (e.g., "computer", "jarvis") or None
-    """
-    if not wake_word_model:
-        return None
-
-    # Remove version suffixes like "_v2", "_v3"
-    import re
-    base = re.sub(r'_v\d+$', '', wake_word_model.lower())
-
-    # Remove "hey_" or "ok_" prefixes to get the core word
-    base = re.sub(r'^(hey_|ok_)', '', base)
-
-    return base if base else None
-
-
-def strip_wake_word(text: str, wake_word_model: Optional[str] = None) -> str:
-    """Strip wake word prefix from transcription.
-
-    Dynamically generates patterns based on the wake word model name.
-    For example, "computer_v2" generates: ["hey computer", "ok computer", "computer"]
+    Uses explicitly configured wake words from the topic settings.
+    Only strips if the transcription actually starts with a configured wake word.
 
     Args:
         text: Raw transcription text
-        wake_word_model: Wake word model name (e.g., "computer_v2")
+        wake_words_to_strip: Comma-separated wake words (e.g., "computa, hey computa")
 
     Returns:
         Text with wake word stripped from the beginning
@@ -72,29 +50,31 @@ def strip_wake_word(text: str, wake_word_model: Optional[str] = None) -> str:
     if not text:
         return text
 
+    if not wake_words_to_strip:
+        return text.strip()
+
     text_lower = text.lower().strip()
     original_text = text.strip()
 
-    # Get base wake word from model name
-    base_word = get_base_wake_word(wake_word_model)
+    # Parse comma-separated wake words and normalize
+    patterns = [p.strip().lower() for p in wake_words_to_strip.split(",") if p.strip()]
 
-    if not base_word:
+    if not patterns:
         return original_text
 
-    # Generate patterns to try: "hey X", "ok X", "X" (longest first)
-    patterns_to_try = [
-        f"hey {base_word}",
-        f"ok {base_word}",
-        base_word
-    ]
+    # Sort by length (longest first) to match "hey computa" before "computa"
+    patterns.sort(key=len, reverse=True)
 
-    for pattern in patterns_to_try:
+    for pattern in patterns:
         if text_lower.startswith(pattern):
-            # Strip the wake word and any trailing punctuation/whitespace
-            stripped = original_text[len(pattern):].lstrip(" ,.:;!?")
-            if stripped:
-                logger.info(f"Stripped wake word '{pattern}' from transcription: '{original_text}' -> '{stripped}'")
-                return stripped
+            # Verify this is a word boundary (not partial match)
+            remaining = text_lower[len(pattern):]
+            if not remaining or remaining[0] in " ,.:;!?":
+                # Strip the wake word and any trailing punctuation/whitespace
+                stripped = original_text[len(pattern):].lstrip(" ,.:;!?")
+                if stripped:
+                    logger.info(f"Stripped wake word '{pattern}' from transcription: '{original_text}' -> '{stripped}'")
+                    return stripped
 
     return original_text
 
@@ -683,17 +663,17 @@ async def _transcribe_impl(
                 metadata['recording_end_time'] = recording_end_time
 
             # Strip wake word from transcription before forwarding
-            wake_word_model = None
+            wake_words_to_strip = None
             try:
                 manager = get_heartbeat_manager()
                 topic_registry = manager.get_topic_registry()
                 topic_config = topic_registry.get_topic(topic)
-                if topic_config and topic_config.metadata:
-                    wake_word_model = topic_config.metadata.get('wake_word')
+                if topic_config:
+                    wake_words_to_strip = topic_config.wake_words_to_strip
             except Exception as e:
-                logger.warning(f"Could not get wake word for topic {topic}: {e}")
+                logger.warning(f"Could not get wake words for topic {topic}: {e}")
 
-            text_to_forward = strip_wake_word(result.text, wake_word_model)
+            text_to_forward = strip_wake_word(result.text, wake_words_to_strip)
 
             await forward_to_core_async(
                 core_client=core_client,
@@ -940,17 +920,17 @@ async def _transcribe_stream_buffer(
             metadata['wake_word_time'] = wake_word_time
 
         # Strip wake word from transcription before forwarding
-        wake_word_model = None
+        wake_words_to_strip = None
         try:
             manager = get_heartbeat_manager()
             topic_registry = manager.get_topic_registry()
             topic_config = topic_registry.get_topic(topic)
-            if topic_config and topic_config.metadata:
-                wake_word_model = topic_config.metadata.get('wake_word')
+            if topic_config:
+                wake_words_to_strip = topic_config.wake_words_to_strip
         except Exception as e:
-            logger.warning(f"Could not get wake word for topic {topic}: {e}")
+            logger.warning(f"Could not get wake words for topic {topic}: {e}")
 
-        text_to_forward = strip_wake_word(result.text, wake_word_model)
+        text_to_forward = strip_wake_word(result.text, wake_words_to_strip)
 
         await forward_to_core_async(
             core_client=core_client,
