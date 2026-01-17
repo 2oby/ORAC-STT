@@ -83,7 +83,7 @@ class TopicRegistry:
     
     def set_core_url(self, topic_name: str, core_url: Optional[str]) -> None:
         """Set Core URL override for a topic.
-        
+
         Args:
             topic_name: Name of the topic
             core_url: Core URL override (None to use default)
@@ -92,8 +92,23 @@ class TopicRegistry:
             if topic_name not in self.topics:
                 # Auto-register if not exists
                 self.auto_register(topic_name)
-            
+
             self.topics[topic_name].orac_core_url = core_url
+            self.save()
+
+    def set_wake_words_to_strip(self, topic_name: str, wake_words: Optional[str]) -> None:
+        """Set wake words to strip for a topic.
+
+        Args:
+            topic_name: Name of the topic
+            wake_words: Comma-separated wake words (e.g., "computer, hey computer")
+        """
+        with self._lock:
+            if topic_name not in self.topics:
+                # Auto-register if not exists
+                self.auto_register(topic_name)
+
+            self.topics[topic_name].wake_words_to_strip = wake_words
             self.save()
     
     def get_active_topics(self) -> List[TopicConfig]:

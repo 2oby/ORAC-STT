@@ -972,14 +972,15 @@ class OracSTTAdmin {
     openTopicSettings(topicName) {
         const topic = this.topics.get(topicName);
         if (!topic) return;
-        
+
         this.currentTopicForSettings = topicName;
-        
+
         // Populate modal fields
         document.getElementById('topicNameField').value = topicName;
         const coreUrlField = document.getElementById('topicCoreUrlField');
         const useDefaultCheckbox = document.getElementById('useDefaultCheckbox');
-        
+        const wakeWordsField = document.getElementById('topicWakeWordsField');
+
         if (topic.orac_core_url) {
             coreUrlField.value = topic.orac_core_url;
             useDefaultCheckbox.checked = false;
@@ -989,7 +990,10 @@ class OracSTTAdmin {
             useDefaultCheckbox.checked = true;
             coreUrlField.disabled = true;
         }
-        
+
+        // Populate wake words field
+        wakeWordsField.value = topic.wake_words_to_strip || '';
+
         // Set up checkbox listener
         useDefaultCheckbox.onchange = (e) => {
             coreUrlField.disabled = e.target.checked;
@@ -997,7 +1001,7 @@ class OracSTTAdmin {
                 coreUrlField.value = '';
             }
         };
-        
+
         // Show modal
         this.topicSettingsModal.style.display = 'block';
     }
@@ -1043,12 +1047,14 @@ class OracSTTAdmin {
     
     async saveTopicSettings() {
         if (!this.currentTopicForSettings) return;
-        
+
         const coreUrlField = document.getElementById('topicCoreUrlField');
         const useDefaultCheckbox = document.getElementById('useDefaultCheckbox');
-        
+        const wakeWordsField = document.getElementById('topicWakeWordsField');
+
         const coreUrl = useDefaultCheckbox.checked ? null : coreUrlField.value.trim() || null;
-        
+        const wakeWords = wakeWordsField.value.trim() || null;
+
         try {
             const response = await fetch(`/admin/topics/${this.currentTopicForSettings}/config`, {
                 method: 'POST',
@@ -1056,15 +1062,16 @@ class OracSTTAdmin {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    orac_core_url: coreUrl
+                    orac_core_url: coreUrl,
+                    wake_words_to_strip: wakeWords
                 })
             });
-            
+
             if (!response.ok) throw new Error('Failed to save topic settings');
-            
+
             // Reload topics to reflect changes
             await this.loadTopics();
-            
+
             // Close modal
             this.closeTopicSettings();
         } catch (error) {

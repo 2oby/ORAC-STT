@@ -14,6 +14,7 @@ router = APIRouter(prefix="/admin/topics", tags=["topics"])
 class TopicConfigUpdate(BaseModel):
     """Request model for updating topic configuration."""
     orac_core_url: Optional[str] = Field(None, description="Core URL override (None uses default)")
+    wake_words_to_strip: Optional[str] = Field(None, description="Comma-separated wake words to strip from transcriptions")
 
 
 class TopicResponse(BaseModel):
@@ -23,7 +24,8 @@ class TopicResponse(BaseModel):
     orac_core_url: Optional[str]
     last_seen: Optional[str]
     metadata: dict
-    
+    wake_words_to_strip: Optional[str] = None
+
     @classmethod
     def from_config(cls, config: TopicConfig) -> "TopicResponse":
         """Create from TopicConfig."""
@@ -32,7 +34,8 @@ class TopicResponse(BaseModel):
             is_active=config.is_active,
             orac_core_url=config.orac_core_url,
             last_seen=config.last_seen.isoformat() if config.last_seen else None,
-            metadata=config.metadata
+            metadata=config.metadata,
+            wake_words_to_strip=config.wake_words_to_strip
         )
 
 
@@ -91,24 +94,27 @@ async def get_topic(topic_name: str):
 
 @router.post("/{topic_name}/config")
 async def update_topic_config(topic_name: str, config: TopicConfigUpdate):
-    """Set Core URL override for a topic.
-    
+    """Update topic configuration (Core URL and wake words).
+
     Args:
         topic_name: Name of the topic
         config: Configuration update
-    
+
     Returns:
         Success status
     """
     try:
         manager = get_heartbeat_manager()
         registry = manager.get_topic_registry()
-        
+
         # Set the Core URL (will auto-register if not exists)
         registry.set_core_url(topic_name, config.orac_core_url)
-        
-        logger.info(f"Updated config for topic '{topic_name}': core_url={config.orac_core_url}")
-        
+
+        # Set wake words to strip
+        registry.set_wake_words_to_strip(topic_name, config.wake_words_to_strip)
+
+        logger.info(f"Updated config for topic '{topic_name}': core_url={config.orac_core_url}, wake_words={config.wake_words_to_strip}")
+
         return {"status": "ok", "message": f"Topic '{topic_name}' configuration updated"}
     except Exception as e:
         logger.error(f"Failed to update topic config: {e}")

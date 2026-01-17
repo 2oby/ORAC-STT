@@ -347,6 +347,18 @@ body {
     box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
 }
 
+.modal-content.modal-scrollable {
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-content.modal-scrollable .modal-body {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
 .modal-header {
     padding: 15px 20px;
     border-bottom: 1px solid #00ff41;
@@ -410,6 +422,14 @@ body {
 .form-input.readonly {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.form-help {
+    display: block;
+    margin-top: 5px;
+    color: #888;
+    font-size: 11px;
+    font-style: italic;
 }
 
 .modal-footer {
