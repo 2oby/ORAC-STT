@@ -152,6 +152,110 @@ body {
     cursor: not-allowed;
 }
 
+/* Model dropdown orange state when different from running */
+.model-dropdown.model-changed {
+    border-color: #ff8c00;
+    color: #ff8c00;
+    box-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
+}
+
+/* Restart Button */
+.restart-btn {
+    background: transparent;
+    color: #00ff41;
+    border: 1px solid #00ff41;
+    padding: 6px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.restart-btn:hover:not(:disabled) {
+    background: rgba(0, 255, 65, 0.1);
+}
+
+.restart-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.restart-btn .restart-icon {
+    font-size: 14px;
+}
+
+/* Restart button orange pulsing state */
+.restart-btn.model-changed {
+    border-color: #ff8c00;
+    color: #ff8c00;
+    animation: pulse-orange 1.5s ease-in-out infinite;
+}
+
+.restart-btn.model-changed:hover:not(:disabled) {
+    background: rgba(255, 140, 0, 0.2);
+}
+
+@keyframes pulse-orange {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(255, 140, 0, 0.6), 0 0 25px rgba(255, 140, 0, 0.3);
+    }
+}
+
+/* Restart button loading state */
+.restart-btn.loading {
+    pointer-events: none;
+    border-color: #00ff41;
+    color: #00ff41;
+    animation: none;
+}
+
+.restart-btn.loading .restart-icon,
+.restart-btn.loading .restart-text {
+    display: none;
+}
+
+.restart-btn.loading .restart-spinner {
+    display: flex !important;
+    gap: 4px;
+}
+
+.restart-spinner .dot {
+    width: 6px;
+    height: 6px;
+    background: #00ff41;
+    border-radius: 50%;
+    animation: spinner-dots 1.4s ease-in-out infinite;
+}
+
+.restart-spinner .dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.restart-spinner .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.restart-spinner .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes spinner-dots {
+    0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
 /* Topic Cards Section */
 .topics-section {
     margin-top: 180px;  /* Below fixed header and control panel */

@@ -174,6 +174,146 @@ async def select_model(request: ModelSelectRequest) -> Dict[str, str]:
         raise HTTPException(status_code=500, detail=f"Failed to switch model: {str(e)}")
 
 
+class ModelRestartRequest(BaseModel):
+    """Model restart request."""
+    model_name: str
+
+
+# Track the running model (set by entrypoint, updated on restart)
+_running_model: Optional[str] = None
+
+
+def _get_running_model() -> str:
+    """Get the currently running model from whisper-server or config."""
+    global _running_model
+    if _running_model:
+        return _running_model
+    # Fall back to environment variable
+    import os
+    return os.environ.get("MODEL_NAME", "whisper-tiny")
+
+
+def _set_running_model(model_name: str) -> None:
+    """Set the running model name."""
+    global _running_model
+    _running_model = model_name
+
+
+@router.get("/models/running")
+async def get_running_model() -> Dict[str, str]:
+    """Get the currently running whisper model."""
+    return {
+        "running_model": _get_running_model(),
+        "config_model": get_model_loader().config.name
+    }
+
+
+@router.post("/models/restart")
+async def restart_with_model(request: ModelRestartRequest) -> Dict[str, Any]:
+    """Restart whisper-server with a new model.
+
+    This kills the current whisper-server process and starts a new one
+    with the specified model. Takes ~10-15 seconds.
+    """
+    import subprocess
+    import os
+    import time
+
+    model_name = request.model_name
+
+    if model_name not in MODEL_INFO:
+        raise HTTPException(status_code=400, detail=f"Invalid model: {model_name}")
+
+    # Map model name to ggml file
+    model_files = {
+        "whisper-tiny": "ggml-tiny.bin",
+        "whisper-base": "ggml-base.bin",
+        "whisper-small": "ggml-small.bin",
+        "whisper-medium": "ggml-medium.bin",
+    }
+
+    ggml_file = model_files.get(model_name, "ggml-tiny.bin")
+    model_path = f"/app/models/whisper_cpp/whisper/{ggml_file}"
+
+    # Check if model file exists
+    if not os.path.exists(model_path):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model file not found: {model_path}"
+        )
+
+    logger.info(f"Restarting whisper-server with model: {model_name}")
+
+    try:
+        # Kill existing whisper-server
+        logger.info("Stopping existing whisper-server...")
+        subprocess.run(["pkill", "-f", "whisper-server"], timeout=5)
+        time.sleep(1)  # Give it time to die
+
+        # Start new whisper-server
+        whisper_prompt = os.environ.get(
+            "WHISPER_PROMPT",
+            "lounge cabinet lights kitchen bedroom bathroom office"
+        )
+
+        cmd = [
+            "/app/third_party/whisper_cpp/bin/whisper-server",
+            "--model", model_path,
+            "--host", "127.0.0.1",
+            "--port", "8080",
+            "--no-timestamps",
+            "--language", "en",
+            "--prompt", whisper_prompt
+        ]
+
+        logger.info(f"Starting whisper-server: {' '.join(cmd)}")
+
+        # Start in background
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True
+        )
+
+        # Wait for server to be ready (poll health endpoint)
+        logger.info("Waiting for whisper-server to be ready...")
+        for _ in range(60):  # Wait up to 60 seconds
+            time.sleep(1)
+            try:
+                import urllib.request
+                urllib.request.urlopen("http://127.0.0.1:8080/", timeout=2)
+                logger.info("whisper-server is ready!")
+                break
+            except Exception:
+                continue
+        else:
+            raise RuntimeError("whisper-server failed to start within 60 seconds")
+
+        # Update running model tracker
+        _set_running_model(model_name)
+
+        # Update config
+        model_loader = get_model_loader()
+        model_loader.config.name = model_name
+
+        # Notify clients
+        await notify_model_change(model_name)
+
+        return {
+            "status": "success",
+            "message": f"Restarted with {model_name}",
+            "running_model": model_name
+        }
+
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout killing whisper-server")
+        raise HTTPException(status_code=500, detail="Timeout stopping whisper-server")
+    except Exception as e:
+        logger.error(f"Failed to restart whisper-server: {e}")
+        raise HTTPException(status_code=500, detail=f"Restart failed: {str(e)}")
+
+
 @router.get("/commands")
 async def get_commands(limit: int = 5) -> List[Dict[str, Any]]:
     """Get recent transcribed commands."""

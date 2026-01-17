@@ -10,22 +10,25 @@ class OracSTTAdmin {
         this.topics = new Map();
         this.topicRefreshInterval = null;
         this.currentTopicForSettings = null;
-        
+        this.runningModel = null;  // Track the actually running model
+        this.selectedModel = null; // Track the selected model in dropdown
+
         // DOM elements
         this.connectionStatus = document.getElementById('connectionStatus');
         this.connectionText = document.getElementById('connectionText');
         this.currentModel = document.getElementById('currentModel');
         this.modelDropdown = document.getElementById('modelDropdown');
+        this.restartBtn = document.getElementById('restartModelBtn');
         this.commandsGrid = document.getElementById('commandsGrid');
         this.emptyState = document.getElementById('emptyState');
         this.commandTileTemplate = document.getElementById('commandTileTemplate');
         this.topicsContainer = document.getElementById('topicsContainer');
         this.topicCardTemplate = document.getElementById('topicCardTemplate');
         this.topicSettingsModal = document.getElementById('topicSettingsModal');
-        
+
         // Initialize
         this.init();
-        
+
         // Set up scrollbar
         this.setupScrollbar();
     }
@@ -155,14 +158,17 @@ class OracSTTAdmin {
     }
     
     setupEventListeners() {
-        // Model selector
-        this.modelDropdown.addEventListener('change', async (e) => {
-            const selectedModel = e.target.value;
-            if (selectedModel) {
-                await this.selectModel(selectedModel);
-            }
+        // Model selector - only update UI state, don't auto-switch
+        this.modelDropdown.addEventListener('change', (e) => {
+            this.selectedModel = e.target.value;
+            this.updateModelChangeState();
         });
-        
+
+        // Restart button
+        this.restartBtn.addEventListener('click', async () => {
+            await this.restartWithModel(this.selectedModel);
+        });
+
         // Page visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -171,6 +177,59 @@ class OracSTTAdmin {
                 this.connectWebSocket();
             }
         });
+    }
+
+    updateModelChangeState() {
+        // Check if selected model differs from running model
+        const hasChanged = this.selectedModel && this.runningModel &&
+                          this.selectedModel !== this.runningModel;
+
+        if (hasChanged) {
+            this.modelDropdown.classList.add('model-changed');
+            this.restartBtn.classList.add('model-changed');
+            this.restartBtn.disabled = false;
+        } else {
+            this.modelDropdown.classList.remove('model-changed');
+            this.restartBtn.classList.remove('model-changed');
+            this.restartBtn.disabled = true;
+        }
+    }
+
+    async restartWithModel(modelName) {
+        if (!modelName || modelName === this.runningModel) return;
+
+        // Show loading state
+        this.restartBtn.classList.add('loading');
+        this.restartBtn.classList.remove('model-changed');
+        this.modelDropdown.disabled = true;
+
+        try {
+            const response = await fetch('/admin/models/restart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model_name: modelName })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                // Update running model
+                this.runningModel = modelName;
+                this.currentModel.textContent = modelName;
+                console.log('Model restarted successfully:', result.message);
+            } else {
+                throw new Error(result.detail || 'Restart failed');
+            }
+
+        } catch (error) {
+            console.error('Failed to restart with model:', error);
+            alert('Failed to restart: ' + error.message);
+        } finally {
+            // Remove loading state
+            this.restartBtn.classList.remove('loading');
+            this.modelDropdown.disabled = false;
+            this.updateModelChangeState();
+        }
     }
     
     connectWebSocket() {
@@ -263,8 +322,11 @@ class OracSTTAdmin {
                 break;
                 
             case 'model_changed':
+                this.runningModel = data.model;
                 this.currentModel.textContent = data.model;
                 this.modelDropdown.value = data.model;
+                this.selectedModel = data.model;
+                this.updateModelChangeState();
                 break;
                 
             default:
@@ -274,55 +336,69 @@ class OracSTTAdmin {
     
     async loadModels() {
         try {
-            // Set mock models
-            const models = [
-                { name: 'whisper-tiny', description: 'Fastest inference, basic accuracy', current: false },
-                { name: 'whisper-small', description: 'Better accuracy, slower', current: true },
-                { name: 'whisper-medium', description: 'Best accuracy, slowest', current: false }
-            ];
-            
             // Clear dropdown
             this.modelDropdown.innerHTML = '';
-            
-            // Populate dropdown
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.name;
-                option.textContent = `${model.name} - ${model.description}`;
-                
-                if (model.current) {
-                    option.selected = true;
-                    this.currentModel.textContent = model.name;
-                }
-                
-                this.modelDropdown.appendChild(option);
-            });
-            
-            this.modelDropdown.disabled = false;
-            
-            // Try real API
-            const response = await fetch('/admin/models').catch(() => ({ ok: false }));
-            if (response.ok) {
-                const apiModels = await response.json();
-                // Update with real data if available
-                this.modelDropdown.innerHTML = '';
+
+            // Fetch available models
+            const modelsResponse = await fetch('/admin/models').catch(() => ({ ok: false }));
+
+            // Fetch running model
+            const runningResponse = await fetch('/admin/models/running').catch(() => ({ ok: false }));
+
+            let runningModel = null;
+            if (runningResponse.ok) {
+                const runningData = await runningResponse.json();
+                runningModel = runningData.running_model;
+                this.runningModel = runningModel;
+            }
+
+            if (modelsResponse.ok) {
+                const apiModels = await modelsResponse.json();
+
                 apiModels.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model.name;
                     option.textContent = `${model.name} - ${model.description}`;
-                    
-                    if (model.current) {
+
+                    // Mark the running model as selected
+                    if (model.name === runningModel) {
                         option.selected = true;
                         this.currentModel.textContent = model.name;
+                        this.selectedModel = model.name;
                     }
-                    
+
+                    this.modelDropdown.appendChild(option);
+                });
+            } else {
+                // Fallback to mock models
+                const models = [
+                    { name: 'whisper-tiny', description: 'Fastest inference, basic accuracy' },
+                    { name: 'whisper-base', description: 'Good balance of speed/accuracy' },
+                    { name: 'whisper-small', description: 'Better accuracy, slower' },
+                    { name: 'whisper-medium', description: 'Best accuracy, slowest' }
+                ];
+
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = `${model.name} - ${model.description}`;
+
+                    if (model.name === (runningModel || 'whisper-base')) {
+                        option.selected = true;
+                        this.currentModel.textContent = model.name;
+                        this.selectedModel = model.name;
+                        if (!this.runningModel) this.runningModel = model.name;
+                    }
+
                     this.modelDropdown.appendChild(option);
                 });
             }
-            
+
+            this.modelDropdown.disabled = false;
+            this.updateModelChangeState();
+
         } catch (error) {
             console.error('Failed to load models:', error);
-            // Keep mock data
         }
     }
     
@@ -350,37 +426,6 @@ class OracSTTAdmin {
         } catch (error) {
             console.error('Failed to load commands:', error);
             // Keep mock data
-        }
-    }
-    
-    async selectModel(modelName) {
-        this.modelDropdown.disabled = true;
-        
-        try {
-            const response = await fetch('/admin/models/select', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ model_name: modelName })
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                this.currentModel.textContent = modelName;
-                console.log('Model switched successfully:', result.message);
-            } else {
-                throw new Error(result.detail || 'Failed to switch model');
-            }
-            
-        } catch (error) {
-            console.error('Failed to switch model:', error);
-            // Don't show alert for demo
-            this.currentModel.textContent = modelName;
-            
-        } finally {
-            this.modelDropdown.disabled = false;
         }
     }
     
