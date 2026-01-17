@@ -34,17 +34,33 @@ DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
 MAX_DEBUG_RECORDINGS = 5
 
 
-# Wake word model name to spoken word mapping
-WAKE_WORD_MAPPING = {
-    "computer_v2": ["computer", "hey computer", "ok computer"],
-    "hey_orac": ["orac", "hey orac", "ok orac"],
-    "alexa": ["alexa", "hey alexa"],
-    "jarvis": ["jarvis", "hey jarvis"],
-}
+def get_base_wake_word(wake_word_model: Optional[str]) -> Optional[str]:
+    """Extract base wake word from model name.
+
+    Args:
+        wake_word_model: Wake word model name (e.g., "computer_v2", "hey_jarvis")
+
+    Returns:
+        Base wake word (e.g., "computer", "jarvis") or None
+    """
+    if not wake_word_model:
+        return None
+
+    # Remove version suffixes like "_v2", "_v3"
+    import re
+    base = re.sub(r'_v\d+$', '', wake_word_model.lower())
+
+    # Remove "hey_" or "ok_" prefixes to get the core word
+    base = re.sub(r'^(hey_|ok_)', '', base)
+
+    return base if base else None
 
 
 def strip_wake_word(text: str, wake_word_model: Optional[str] = None) -> str:
     """Strip wake word prefix from transcription.
+
+    Dynamically generates patterns based on the wake word model name.
+    For example, "computer_v2" generates: ["hey computer", "ok computer", "computer"]
 
     Args:
         text: Raw transcription text
@@ -59,21 +75,18 @@ def strip_wake_word(text: str, wake_word_model: Optional[str] = None) -> str:
     text_lower = text.lower().strip()
     original_text = text.strip()
 
-    # Get wake word patterns to strip
-    patterns_to_try = []
+    # Get base wake word from model name
+    base_word = get_base_wake_word(wake_word_model)
 
-    # If we know the wake word model, use its specific patterns first
-    if wake_word_model and wake_word_model in WAKE_WORD_MAPPING:
-        patterns_to_try.extend(WAKE_WORD_MAPPING[wake_word_model])
+    if not base_word:
+        return original_text
 
-    # Also try all common wake word patterns as fallback
-    for patterns in WAKE_WORD_MAPPING.values():
-        for pattern in patterns:
-            if pattern not in patterns_to_try:
-                patterns_to_try.append(pattern)
-
-    # Sort by length (longest first) to match "hey computer" before "computer"
-    patterns_to_try.sort(key=len, reverse=True)
+    # Generate patterns to try: "hey X", "ok X", "X" (longest first)
+    patterns_to_try = [
+        f"hey {base_word}",
+        f"ok {base_word}",
+        base_word
+    ]
 
     for pattern in patterns_to_try:
         if text_lower.startswith(pattern):
