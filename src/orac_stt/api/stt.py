@@ -34,6 +34,58 @@ DEBUG_RECORDINGS_DIR = Path("/app/debug_recordings")
 MAX_DEBUG_RECORDINGS = 5
 
 
+# Wake word model name to spoken word mapping
+WAKE_WORD_MAPPING = {
+    "computer_v2": ["computer", "hey computer", "ok computer"],
+    "hey_orac": ["orac", "hey orac", "ok orac"],
+    "alexa": ["alexa", "hey alexa"],
+    "jarvis": ["jarvis", "hey jarvis"],
+}
+
+
+def strip_wake_word(text: str, wake_word_model: Optional[str] = None) -> str:
+    """Strip wake word prefix from transcription.
+
+    Args:
+        text: Raw transcription text
+        wake_word_model: Wake word model name (e.g., "computer_v2")
+
+    Returns:
+        Text with wake word stripped from the beginning
+    """
+    if not text:
+        return text
+
+    text_lower = text.lower().strip()
+    original_text = text.strip()
+
+    # Get wake word patterns to strip
+    patterns_to_try = []
+
+    # If we know the wake word model, use its specific patterns first
+    if wake_word_model and wake_word_model in WAKE_WORD_MAPPING:
+        patterns_to_try.extend(WAKE_WORD_MAPPING[wake_word_model])
+
+    # Also try all common wake word patterns as fallback
+    for patterns in WAKE_WORD_MAPPING.values():
+        for pattern in patterns:
+            if pattern not in patterns_to_try:
+                patterns_to_try.append(pattern)
+
+    # Sort by length (longest first) to match "hey computer" before "computer"
+    patterns_to_try.sort(key=len, reverse=True)
+
+    for pattern in patterns_to_try:
+        if text_lower.startswith(pattern):
+            # Strip the wake word and any trailing punctuation/whitespace
+            stripped = original_text[len(pattern):].lstrip(" ,.:;!?")
+            if stripped:
+                logger.info(f"Stripped wake word '{pattern}' from transcription: '{original_text}' -> '{stripped}'")
+                return stripped
+
+    return original_text
+
+
 class TranscriptionResponse(BaseModel):
     """STT transcription response model."""
     text: str = Field(..., description="Transcribed text")
@@ -617,9 +669,22 @@ async def _transcribe_impl(
             if recording_end_time:
                 metadata['recording_end_time'] = recording_end_time
 
+            # Strip wake word from transcription before forwarding
+            wake_word_model = None
+            try:
+                manager = get_heartbeat_manager()
+                topic_registry = manager.get_topic_registry()
+                topic_config = topic_registry.get_topic(topic)
+                if topic_config and topic_config.metadata:
+                    wake_word_model = topic_config.metadata.get('wake_word')
+            except Exception as e:
+                logger.warning(f"Could not get wake word for topic {topic}: {e}")
+
+            text_to_forward = strip_wake_word(result.text, wake_word_model)
+
             await forward_to_core_async(
                 core_client=core_client,
-                text=result.text,
+                text=text_to_forward,
                 topic=topic,
                 metadata=metadata
             )
@@ -861,9 +926,22 @@ async def _transcribe_stream_buffer(
         if wake_word_time:
             metadata['wake_word_time'] = wake_word_time
 
+        # Strip wake word from transcription before forwarding
+        wake_word_model = None
+        try:
+            manager = get_heartbeat_manager()
+            topic_registry = manager.get_topic_registry()
+            topic_config = topic_registry.get_topic(topic)
+            if topic_config and topic_config.metadata:
+                wake_word_model = topic_config.metadata.get('wake_word')
+        except Exception as e:
+            logger.warning(f"Could not get wake word for topic {topic}: {e}")
+
+        text_to_forward = strip_wake_word(result.text, wake_word_model)
+
         await forward_to_core_async(
             core_client=core_client,
-            text=result.text,
+            text=text_to_forward,
             topic=topic,
             metadata=metadata
         )
