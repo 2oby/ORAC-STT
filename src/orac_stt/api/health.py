@@ -7,6 +7,7 @@ from fastapi import APIRouter, status
 from pydantic import BaseModel
 
 from ..utils.logging import get_logger
+from ..core.whisper_manager import get_whisper_manager
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -29,19 +30,26 @@ class HealthStatus(BaseModel):
 )
 async def health_check() -> HealthStatus:
     """Perform health check and return service status."""
+    # Check whisper-server health
+    whisper_manager = get_whisper_manager()
+    whisper_healthy = whisper_manager.is_healthy()
+    whisper_status = whisper_manager.get_status()
+
     checks = {
         "api": "healthy",
-        "model": "not_loaded",  # Will be updated when model is implemented
-        "gpu": "not_checked",  # Will be updated when GPU check is implemented
+        "whisper_server": "healthy" if whisper_healthy else "unhealthy",
+        "whisper_restart_count": whisper_status["restart_count"],
+        "whisper_consecutive_failures": whisper_status["consecutive_failures"],
+        "watchdog": "running" if whisper_status["watchdog_running"] else "stopped",
     }
-    
+
     # Determine overall status
     overall_status = "healthy"
-    if any(status == "unhealthy" for status in checks.values()):
-        overall_status = "unhealthy"
-    elif any(status in ["not_loaded", "not_checked"] for status in checks.values()):
+    if not whisper_healthy:
         overall_status = "degraded"
-    
+    if whisper_status["consecutive_failures"] >= whisper_manager.max_consecutive_failures:
+        overall_status = "unhealthy"
+
     return HealthStatus(
         status=overall_status,
         timestamp=datetime.utcnow(),

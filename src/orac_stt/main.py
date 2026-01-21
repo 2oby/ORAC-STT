@@ -27,22 +27,28 @@ logger = None
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     global settings, logger
-    
+
     # Startup
     logger.info("Starting ORAC STT Service", extra={"version": "0.1.0"})
-    
+
     # Initialize components here (model loading, etc.)
     # Set up command buffer observer for WebSocket notifications
     from .api.admin import setup_command_observer
     setup_command_observer()
-    
+
+    # Start whisper-server watchdog (monitors health, auto-restarts on failure)
+    from .core.whisper_manager import get_whisper_manager
+    whisper_manager = get_whisper_manager()
+    await whisper_manager.start_watchdog()
+
     logger.info("Application startup complete")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down ORAC STT Service")
-    # Cleanup resources here
+    # Stop whisper watchdog
+    whisper_manager.stop()
     
 
 def create_app(config_path: Optional[Path] = None) -> FastAPI:
